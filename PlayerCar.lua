@@ -1,12 +1,6 @@
 
 PlayerCar = Object:extend()
 
----- TODO:
--- Linear traction and wheelspin model
---   Track angular momentum and compute force from slip ratio
--- Cornering model
--- Weight transfer
-
 function PlayerCar:new(x, y)
   
   -- Define image
@@ -108,11 +102,7 @@ function PlayerCar:update(dt)
   local dragForceY = 0
   local tractionForce = 0
   
-  -- Calculate traction force from slip ratio
-  --   Traction force is (load on driven wheels) * F(s)
-  --   F(s) = 0 at s = 0
-  --          tireMu at s = +-0.06
-  --          tireMu * 0.7 at s = +-100
+  -- Calculate traction force from slip ratio TODO
   local slipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
   
   if math.abs(forwardSpeed) < self.speedZeroThreshold and accelForce == 0 then
@@ -129,16 +119,14 @@ function PlayerCar:update(dt)
   local tractionForceY = tractionForce * uy
   
   -- Cornering
-  ------ Placeholder model
-  ------   Scale steering angle based on speed
-  ------   Apply lateral force based on steering angle
-  ------   Directly set facing to match direction of travel (or opposite if closer)
+  -- Scale steering angle based on speed
   local steeringAngle = self.steering * self.maxSteeringAngle / (0.05 * math.abs(forwardSpeed) + 1)
   local steeringRadius = self.wheelbase / math.sin(steeringAngle)
   
   local steeringForceX = 0
   local steeringForceY = 0
   
+  -- Compute steering force
   if steeringAngle ~= 0 and math.abs(forwardSpeed) > self.speedZeroThreshold then
     local steeringForce = self.mass * forwardSpeed^2 / math.abs(steeringRadius)
     local steeringForceAngle = 0
