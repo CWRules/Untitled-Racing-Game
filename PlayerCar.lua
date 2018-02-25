@@ -75,6 +75,12 @@ function PlayerCar:update(dt)
   local speed = self:getSpeed()
   local forwardSpeed = self:getForwardSpeed()
   
+  -- Prevent zero crossing errors
+  if math.abs(forwardSpeed) < self.speedZeroThreshold and self.throttle == 0 then
+    self.body:setLinearVelocity(0, 0)
+    return
+  end
+  
   -- Acceleration
   local engineTorque = 0
   if self.gearShiftDelay <= 0 then
@@ -98,23 +104,14 @@ function PlayerCar:update(dt)
   end
   
   -- Calculate total linear forces
-  local dragForceX = 0
-  local dragForceY = 0
-  local tractionForce = 0
   
-  -- Calculate traction force from slip ratio TODO
+  ------ Calculate traction force from slip ratio TODO
   local slipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
   
-  if math.abs(forwardSpeed) < self.speedZeroThreshold and accelForce == 0 then
-    -- Prevent zero crossing
-    tractionForce = 0
-    self.body:setLinearVelocity(0, 0)
-  else
-    tractionForce = accelForce + brakeForce + rollResForce
-    dragForceX = -self.cDrag * vx * speed
-    dragForceY = -self.cDrag * vy * speed
-  end
+  local dragForceX = -self.cDrag * vx * speed
+  local dragForceY = -self.cDrag * vy * speed
   
+  local tractionForce = accelForce + brakeForce + rollResForce
   local tractionForceX = tractionForce * ux
   local tractionForceY = tractionForce * uy
   
@@ -127,7 +124,7 @@ function PlayerCar:update(dt)
   local steeringForceY = 0
   
   -- Compute steering force
-  if steeringAngle ~= 0 and math.abs(forwardSpeed) > self.speedZeroThreshold then
+  if steeringAngle ~= 0 then
     local steeringForce = self.mass * forwardSpeed^2 / math.abs(steeringRadius)
     local steeringForceAngle = 0
     
