@@ -1,4 +1,7 @@
 
+--[[ love.load()
+  LOVE initialization function. Run once at program start.
+--]]
 function love.load()
   
   Object = require "lib/classic"
@@ -6,7 +9,6 @@ function love.load()
   --require("mobdebug").start()
   
   -- Set up window
-  love.window.setMode(1000, 600)
   love.graphics.setBackgroundColor(255, 255, 255)
   maxX = love.graphics.getWidth()
   maxY = love.graphics.getHeight()
@@ -49,6 +51,11 @@ function love.load()
 end
 
 
+--[[ love.update()
+  LOVE update function. Run once each program cycle.
+  
+  dt: Time in seconds since last program cycle.
+--]]
 function love.update(dt)
   
   world:update(dt)
@@ -57,6 +64,9 @@ function love.update(dt)
 end
 
 
+--[[ love.draw()
+  LOVE graphics function. Run once each program cycle after update() finishes.
+--]]
 function love.draw()
   
   car:draw()
