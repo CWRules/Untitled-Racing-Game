@@ -1,6 +1,15 @@
 
+--[[ PlayerCar
+  Class defining the functionality of the player-controlled car.
+--]]
 PlayerCar = Object:extend()
 
+--[[ PlayerCar:new(x, y)
+  PlayerCar constructor.
+  
+  x: X coordinate to initialize the car at.
+  y: Y coordinate to initialize the car at.
+--]]
 function PlayerCar:new(x, y)
   
   -- Define image
@@ -64,6 +73,11 @@ function PlayerCar:new(x, y)
 end
 
 
+--[[ PlayerCar:update(dt)
+  Updates state of car for current program cycle.
+  
+  dt: Time in seconds since last program cycle.
+--]]
 function PlayerCar:update(dt)
   
   self:processInputs(dt)
@@ -165,6 +179,9 @@ function PlayerCar:update(dt)
 end
 
 
+--[[ PlayerCar:draw()
+  Draws the car on screen. Currently also displays information about the car, but this will probably be moved eventually.
+--]]
 function PlayerCar:draw()
   
   love.graphics.setColor(255, 255, 255)
@@ -198,6 +215,9 @@ function PlayerCar:draw()
 end
 
 
+--[[ PlayerCar:getSpeed()
+  Returns the magnitude of the car's linear velocity.
+--]]
 function PlayerCar:getSpeed()
   
   local vx, vy = self.body:getLinearVelocity()
@@ -206,6 +226,9 @@ function PlayerCar:getSpeed()
 end
 
 
+--[[ PlayerCar:getForwardSpeed()
+  Returns the speed of the car in the direction it is currently facing.
+--]]
 function PlayerCar:getForwardSpeed()
   
   local vx, vy = self.body:getLinearVelocity()
@@ -215,6 +238,11 @@ function PlayerCar:getForwardSpeed()
 end
 
 
+--[[ PlayerCar:torqueCurveLookup(rpm)
+  Returns the torque produced by the car's engine at a given RPM.
+  
+  rpm: RPM for which a torque value should be returned.
+--]]
 function PlayerCar:torqueCurveLookup(rpm)
   
   if rpm < self.idleRpm then
@@ -240,6 +268,11 @@ function PlayerCar:torqueCurveLookup(rpm)
 end
 
 
+--[[ PlayerCar:processInputs(dt)
+  Handles processing of player inputs.
+  
+  dt: Time in seconds since last program cycle.
+--]]
 function PlayerCar:processInputs(dt)
   
   -- Accelerator
@@ -303,6 +336,9 @@ function PlayerCar:processInputs(dt)
 end
 
 
+--[[ PlayerCar:reset()
+  Resets the car back to default position and state.
+--]]
 function PlayerCar:reset()
   
   self.throttle = 0
