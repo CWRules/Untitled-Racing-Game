@@ -45,6 +45,21 @@ function PlayerCar:new(x, y)
   self.driveEfficiency = 0.85
   self.gearShiftTime = 0.7
   
+  self.frontWheelAngV = 0
+  self.rearWheelAngV = 0
+  self.tireMu = 1.17
+  self.frontWheelDrive = false
+  self.rearWheelDrive = true
+  
+  -- Angular inertia of drivetrain + wheels
+  local wheelMass = 20
+  local twoWheelsAngInertia = wheelMass * self.wheelRadius^2
+  local drivelineAngInertia = 0.4 -- VERY rough estimate
+  self.frontAngInertia = twoWheelsAngInertia
+  self.rearAngInertia = twoWheelsAngInertia
+  if self.frontWheelDrive then self.frontAngInertia = self.frontAngInertia + drivelineAngInertia end
+  if self.rearWheelDrive then self.rearAngInertia = self.rearAngInertia + drivelineAngInertia end
+  
   self.brakeTorque = 5000
   
   self.cDrag = 0.42
@@ -60,8 +75,6 @@ function PlayerCar:new(x, y)
   self.rpm = self.idleRpm
   self.gear = 1
   self.gearShiftDelay = 0
-  
-  self.rearWheelAngV = 0
   
   -- Set up physics
   self.body = love.physics.newBody(world, x, y, "dynamic", 1)
@@ -89,9 +102,11 @@ function PlayerCar:update(dt)
   local speed = self:getSpeed()
   local forwardSpeed = self:getForwardSpeed()
   
-  -- Prevent zero crossing errors
+  -- Prevent zero crossing
   if math.abs(forwardSpeed) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
+    self.frontWheelAngV = 0
+    self.rearWheelAngV = 0
     return
   end
   
@@ -102,32 +117,75 @@ function PlayerCar:update(dt)
     self.rpm = math.max(math.min(clutchOutputRpm, self.redlineRpm), self.idleRpm)  
     engineTorque = self.throttle * self.driveEfficiency * self:torqueCurveLookup(clutchOutputRpm)
   end
-  
   local accelTorque = engineTorque * self.finalDrive * self.gearRatios[self.gear + 1]
-  local accelForce = accelTorque / self.wheelRadius
   
-  -- Braking and rolling resistance
-  local brakeTorque = -self.brake * self.brakeTorque
-  local brakeForce = brakeTorque / self.wheelRadius
-  local rollResForce = -self.rollingRes
-  
-  -- Flip braking and rolling resistance forces if necessary
-  if forwardSpeed < 0 then
-    brakeForce = -brakeForce
-    rollResForce = -rollResForce
+  local frontAccelTorque = 0
+  local rearAccelTorque = 0
+  if self.frontDrive and self.rearDrive then
+    frontAccelTorque = accelTorque / 2
+    rearAccelTorque = accelTorque / 2
+  elseif self.frontDrive then
+    frontAccelTorque = accelTorque
+  elseif self.frontDrive then
+    rearAccelTorque = accelTorque
   end
   
-  -- Calculate total linear forces
+  ------ Remove
+  local accelForce = accelTorque / self.wheelRadius
   
-  ------ Calculate traction force from slip ratio TODO
-  local slipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
+  -- Braking
+  local brakeTorque = -self.brake * self.brakeTorque
+  local frontBrakeTorque = brakeTorque / 2
+  local rearBrakeTorque = brakeTorque / 2
+  if self.frontWheelAngV < 0 then frontBrakeTorque = -frontBrakeTorque end
+  if self.rearWheelAngV < 0 then rearBrakeTorque = -rearBrakeTorque end
   
+  ------ Remove
+  local brakeForce = brakeTorque / self.wheelRadius
+  if forwardSpeed < 0 then brakeForce = -brakeForce end
+  
+  -- Traction force
+  local frontSlipRatio = 0
+  local rearSlipRatio = 0
+  
+  if forwardSpeed ~= 0 or self.frontWheelAngV ~= 0 then
+    frontSlipRatio = (self.wheelRadius * self.frontWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
+  end
+  if forwardSpeed ~= 0 or self.rearWheelAngV ~= 0 then
+    rearSlipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
+  end
+  
+  local frontWheelLoad = gravity * self.mass / 2
+  local rearWheelLoad = gravity * self.mass / 2
+  
+  local frontTractionForce = self:computeTractionForce(frontSlipRatio, frontWheelLoad)
+  local rearTractionForce = self:computeTractionForce(rearSlipRatio, rearWheelLoad)
+  
+  local frontTractionTorque = -frontTractionForce * self.wheelRadius
+  local rearTractionTorque = -rearTractionForce * self.wheelRadius
+  
+  ------ Replace with sum of front + rear traction forces
+  local tractionForce = accelForce + brakeForce
+  local tractionForceX = tractionForce * ux
+  local tractionForceY = tractionForce * uy
+  
+  -- Update wheel angular velocity
+  self.frontWheelAngV = self.frontWheelAngV +
+    self:computeDeltaAngV(frontAccelTorque, frontBrakeTorque, frontTractionTorque,
+      self.frontAngInertia, (self.wheelRadius * self.frontWheelAngV), forwardSpeed, dt)
+  
+  self.rearWheelAngV = self.rearWheelAngV +
+    self:computeDeltaAngV(rearAccelTorque, rearBrakeTorque, rearTractionTorque,
+      self.rearAngInertia, (self.wheelRadius * self.rearWheelAngV), forwardSpeed, dt)
+  
+  -- Drag and rolling resistance
   local dragForceX = -self.cDrag * vx * speed
   local dragForceY = -self.cDrag * vy * speed
   
-  local tractionForce = accelForce + brakeForce + rollResForce
-  local tractionForceX = tractionForce * ux
-  local tractionForceY = tractionForce * uy
+  local rollResForce = -self.rollingRes
+  if forwardSpeed < 0 then rollResForce = -rollResForce end
+  local rollResFroceX = rollResForce * ux
+  local rollResFroceY = rollResForce * uy
   
   -- Cornering
   -- Scale steering angle based on speed
@@ -171,8 +229,8 @@ function PlayerCar:update(dt)
   end
   
   -- Apply forces
-  local netForceX = tractionForceX + dragForceX + steeringForceX
-  local netForceY = tractionForceY + dragForceY + steeringForceY
+  local netForceX = tractionForceX + rollResFroceX + dragForceX + steeringForceX
+  local netForceY = tractionForceY + rollResFroceY + dragForceY + steeringForceY
   
   self.body:applyForce(netForceX, netForceY)
   
@@ -192,14 +250,20 @@ function PlayerCar:draw()
   love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, %.2f", self.throttle, self.brake, self.steering), 20, 20)
   love.graphics.print(string.format("Speed: %.2f m/s / %.1f mph", self:getForwardSpeed(), 2.237 * self:getForwardSpeed()), 20, 35)
   
-  local gearString = "-"
+  local gearString = ""
   if self.gearShiftDelay <= 0 then
     if self.gear == 0 then
       gearString = "R"
     else
       gearString = tostring(self.gear)
     end
+  else
+    local gearChangeProgress = math.floor(10 * (self.gearShiftTime - self.gearShiftDelay) / self.gearShiftTime)
+    for i = 1, gearChangeProgress do gearString = gearString .. "-" end
+    gearString = gearString .. "|"
+    for i = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
   end
+  
   love.graphics.print(string.format("Gear: %s", gearString), 20, 50)
   
   local rpmString = tostring(math.floor(self.rpm))
@@ -212,28 +276,8 @@ function PlayerCar:draw()
   end
   love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
-end
-
-
---[[ PlayerCar:getSpeed()
-  Returns the magnitude of the car's linear velocity.
---]]
-function PlayerCar:getSpeed()
-  
-  local vx, vy = self.body:getLinearVelocity()
-  return math.sqrt(vx^2 + vy^2)
-  
-end
-
-
---[[ PlayerCar:getForwardSpeed()
-  Returns the speed of the car in the direction it is currently facing.
---]]
-function PlayerCar:getForwardSpeed()
-  
-  local vx, vy = self.body:getLinearVelocity()
-  local vAngle = math.atan2(vy, vx)
-  return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
+  love.graphics.print(string.format("FW, RW spd: %.1f mph, %.1f mph",
+      self.frontWheelAngV * self.wheelRadius, self.rearWheelAngV * self.wheelRadius), 20, 80)
   
 end
 
@@ -264,6 +308,56 @@ function PlayerCar:torqueCurveLookup(rpm)
     
     return y0 + (rpm - x0) * (y1 - y0) / (x1 - x0)
   end
+  
+end
+
+
+--[[ PlayerCar:computeTractionForce(slipRatio, load)
+  Returns the traction force for a given slip ratio and wheel load.
+  
+  slipRatio: Slip ratio of the tire.
+  tireLoad: Load in Newtons on the tire.
+--]]
+function PlayerCar:computeTractionForce(slipRatio, tireLoad)
+  
+  local loadFactor = 0
+  
+  if slipRatio < -0.06 then
+    loadFactor = (-0.3/0.94)*(slipRatio + 0.06) - 1
+    if loadFactor > -0.5 then loadFactor = -0.5 end
+  elseif slipRatio <= 0.06 then
+     loadFactor = slipRatio / 0.06
+  else
+    loadFactor = (-0.3/0.94)*(slipRatio - 0.06) + 1
+    if loadFactor < 0.5 then loadFactor = 0.5 end
+  end
+  
+  return loadFactor * tireLoad * self.tireMu
+  
+end
+
+
+--[[ PlayerCar:computeDeltaAngV(accelTorque, brakeTorque, tractionTorque, angInertia, wheelSpeed, carSpeed, dt)
+  Returns the change in angular velocity given the torques acting on a wheel.
+  Accounts for zero crossing errors caused by traction and braking torques.
+  
+  accelTorque: Acceleration torque acting on the wheel.
+  brakeTorque: Braking torque acting on the wheel.
+  tractionTorque: Traction torque acting on the wheel.
+  angInertia: Angular inertia of the wheel.
+  wheelSpeed: Speed of the wheel, expressed as equivalent forward velocity.
+  carSpeed: Forward speed of the car.
+  dt: Time in seconds since the last program cycle.
+--]]
+function PlayerCar:computeDeltaAngV(accelTorque, brakeTorque, tractionTorque, angInertia, wheelSpeed, carSpeed, dt)
+  
+  local wheelTorque = accelTorque + brakeTorque + tractionTorque
+  return wheelTorque * dt / angInertia
+  
+  ------ Traction torque is causing zero crossing
+  ------ Need to prevent for both it and brake torque
+  ------ Brake should try to drive wheel speed to zero
+  ------ Traction should try to drive slip ratio to zero
   
 end
 
@@ -344,13 +438,40 @@ function PlayerCar:reset()
   self.throttle = 0
   self.brake = 0
   self.steering = 0
+  
   self.rpm = self.idleRpm
   self.gear = 1
   self.gearShiftDelay = 0
+  
+  self.frontWheelAngV = 0
+  self.rearWheelAngV = 0
   
   self.body:setAngle(0)
   self.body:setAngularVelocity(0)
   self.body:setPosition(50, maxY - 50)
   self.body:setLinearVelocity(0, 0)
+  
+end
+
+
+--[[ PlayerCar:getSpeed()
+  Returns the magnitude of the car's linear velocity.
+--]]
+function PlayerCar:getSpeed()
+  
+  local vx, vy = self.body:getLinearVelocity()
+  return math.sqrt(vx^2 + vy^2)
+  
+end
+
+
+--[[ PlayerCar:getForwardSpeed()
+  Returns the speed of the car in the direction it is currently facing.
+--]]
+function PlayerCar:getForwardSpeed()
+  
+  local vx, vy = self.body:getLinearVelocity()
+  local vAngle = math.atan2(vy, vx)
+  return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
   
 end
