@@ -65,7 +65,7 @@ function PlayerCar:new(x, y)
   self.cDrag = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
   
-  self.speedZeroThreshold = 0.2
+  self.speedZeroThreshold = 0.02
   
   -- Initialize state variables
   self.throttle = 0
@@ -275,9 +275,10 @@ function PlayerCar:draw()
   love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
   love.graphics.print(string.format("FW, RW spd: %.1f mph, %.1f mph",
-      self.frontWheelAngV * self.wheelRadius, self.rearWheelAngV * self.wheelRadius), 20, 80)
+      2.237 * self.frontWheelAngV * self.wheelRadius,
+      2.237 * self.rearWheelAngV * self.wheelRadius), 20, 80)
   
-  love.graphics.print(string.format("Updates/s: %d", 1/love.timer.getAverageDelta()), 20, 95)
+  love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 95)
   
 end
 
