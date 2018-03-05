@@ -60,7 +60,7 @@ function PlayerCar:new(x, y)
   if self.frontWheelDrive then self.frontAngInertia = self.frontAngInertia + drivelineAngInertia end
   if self.rearWheelDrive then self.rearAngInertia = self.rearAngInertia + drivelineAngInertia end
   
-  self.brakeTorque = 5000
+  self.brakeTorque = 2500
   
   self.cDrag = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
@@ -141,7 +141,7 @@ function PlayerCar:update(dt)
   if self.rearWheelAngV < 0 then rearBrakeTorque = -rearBrakeTorque end
   
   ------ Remove
-  local brakeForce = brakeTorque / self.wheelRadius
+  local brakeForce = 2 * brakeTorque / self.wheelRadius
   if forwardSpeed < 0 then brakeForce = -brakeForce end
   
   -- Traction force
@@ -170,13 +170,11 @@ function PlayerCar:update(dt)
   local tractionForceY = tractionForce * uy
   
   -- Update wheel angular velocity
-  self.frontWheelAngV = self.frontWheelAngV +
-    self:computeDeltaAngV(frontAccelTorque, frontBrakeTorque, frontTractionTorque,
-      self.frontAngInertia, (self.wheelRadius * self.frontWheelAngV), forwardSpeed, dt)
+  local frontWheelTorque = frontAccelTorque + frontBrakeTorque + frontTractionTorque
+  local rearWheelTorque = rearAccelTorque + rearBrakeTorque + rearTractionTorque
   
-  self.rearWheelAngV = self.rearWheelAngV +
-    self:computeDeltaAngV(rearAccelTorque, rearBrakeTorque, rearTractionTorque,
-      self.rearAngInertia, (self.wheelRadius * self.rearWheelAngV), forwardSpeed, dt)
+  self.frontWheelAngV = self.frontWheelAngV + (frontWheelTorque * dt / self.frontAngInertia)
+  self.rearWheelAngV = self.rearWheelAngV + (rearWheelTorque * dt / self.rearAngInertia)
   
   -- Drag and rolling resistance
   local dragForceX = -self.cDrag * vx * speed
@@ -279,6 +277,8 @@ function PlayerCar:draw()
   love.graphics.print(string.format("FW, RW spd: %.1f mph, %.1f mph",
       self.frontWheelAngV * self.wheelRadius, self.rearWheelAngV * self.wheelRadius), 20, 80)
   
+  love.graphics.print(string.format("Updates/s: %d", 1/love.timer.getAverageDelta()), 20, 95)
+  
 end
 
 
@@ -333,31 +333,6 @@ function PlayerCar:computeTractionForce(slipRatio, tireLoad)
   end
   
   return loadFactor * tireLoad * self.tireMu
-  
-end
-
-
---[[ PlayerCar:computeDeltaAngV(accelTorque, brakeTorque, tractionTorque, angInertia, wheelSpeed, carSpeed, dt)
-  Returns the change in angular velocity given the torques acting on a wheel.
-  Accounts for zero crossing errors caused by traction and braking torques.
-  
-  accelTorque: Acceleration torque acting on the wheel.
-  brakeTorque: Braking torque acting on the wheel.
-  tractionTorque: Traction torque acting on the wheel.
-  angInertia: Angular inertia of the wheel.
-  wheelSpeed: Speed of the wheel, expressed as equivalent forward velocity.
-  carSpeed: Forward speed of the car.
-  dt: Time in seconds since the last program cycle.
---]]
-function PlayerCar:computeDeltaAngV(accelTorque, brakeTorque, tractionTorque, angInertia, wheelSpeed, carSpeed, dt)
-  
-  local wheelTorque = accelTorque + brakeTorque + tractionTorque
-  return wheelTorque * dt / angInertia
-  
-  ------ Traction torque is causing zero crossing
-  ------ Need to prevent for both it and brake torque
-  ------ Brake should try to drive wheel speed to zero
-  ------ Traction should try to drive slip ratio to zero
   
 end
 
