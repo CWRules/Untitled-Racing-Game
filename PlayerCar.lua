@@ -3,6 +3,7 @@
   Class defining the functionality of the player-controlled car.
 --]]
 PlayerCar = Object:extend()
+require("mobdebug").start()
 
 --[[ PlayerCar:new(x, y)
   PlayerCar constructor.
@@ -54,13 +55,13 @@ function PlayerCar:new(x, y)
   -- Angular inertia of drivetrain + wheels
   local wheelMass = 20
   local twoWheelsAngInertia = wheelMass * self.wheelRadius^2
-  local drivelineAngInertia = 0.4 -- VERY rough estimate
+  local drivelineAngInertia = 0.6 -- VERY rough estimate
   self.frontAngInertia = twoWheelsAngInertia
   self.rearAngInertia = twoWheelsAngInertia
   if self.frontWheelDrive then self.frontAngInertia = self.frontAngInertia + drivelineAngInertia end
   if self.rearWheelDrive then self.rearAngInertia = self.rearAngInertia + drivelineAngInertia end
   
-  self.brakeTorque = 2500
+  self.brakeTorque = 6000
   
   self.cDrag = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
@@ -95,6 +96,9 @@ function PlayerCar:update(dt)
   
   self:processInputs(dt)
   
+  ------ DEBUG
+  d1, d2 = 0, 0
+  
   -- Frequently accessed values
   local ux = math.cos(self.body:getAngle())
   local uy = math.sin(self.body:getAngle())
@@ -113,7 +117,17 @@ function PlayerCar:update(dt)
   -- Acceleration
   local engineTorque = 0
   if self.gearShiftDelay <= 0 then
-    local clutchOutputRpm = self.finalDrive * math.abs(self.gearRatios[self.gear + 1]) * speed * (30/math.pi) / self.wheelRadius
+    
+    local driveWheelSpeed = 0
+    if self.frontWheelDrive and self.rearWheelDrive then
+      driveWheelSpeed = (self.frontWheelAngV + self.rearWheelAngV) / 2
+    elseif self.frontWheelDrive then
+      driveWheelSpeed = self.frontWheelAngV
+    elseif self.rearWheelDrive then
+      driveWheelSpeed = self.rearWheelAngV
+    end
+    
+    local clutchOutputRpm = self.finalDrive * self.gearRatios[self.gear + 1] * driveWheelSpeed * (30/math.pi)
     self.rpm = math.max(math.min(clutchOutputRpm, self.redlineRpm), self.idleRpm)  
     engineTorque = self.throttle * self.driveEfficiency * self:torqueCurveLookup(clutchOutputRpm)
   end
@@ -121,17 +135,14 @@ function PlayerCar:update(dt)
   
   local frontAccelTorque = 0
   local rearAccelTorque = 0
-  if self.frontDrive and self.rearDrive then
+  if self.frontWheelDrive and self.rearWheelDrive then
     frontAccelTorque = accelTorque / 2
     rearAccelTorque = accelTorque / 2
-  elseif self.frontDrive then
+  elseif self.frontWheelDrive then
     frontAccelTorque = accelTorque
-  elseif self.frontDrive then
+  elseif self.rearWheelDrive then
     rearAccelTorque = accelTorque
   end
-  
-  ------ Remove
-  local accelForce = accelTorque / self.wheelRadius
   
   -- Braking
   local brakeTorque = -self.brake * self.brakeTorque
@@ -139,10 +150,6 @@ function PlayerCar:update(dt)
   local rearBrakeTorque = brakeTorque / 2
   if self.frontWheelAngV < 0 then frontBrakeTorque = -frontBrakeTorque end
   if self.rearWheelAngV < 0 then rearBrakeTorque = -rearBrakeTorque end
-  
-  ------ Remove
-  local brakeForce = 2 * brakeTorque / self.wheelRadius
-  if forwardSpeed < 0 then brakeForce = -brakeForce end
   
   -- Traction force
   local frontSlipRatio = 0
@@ -155,6 +162,10 @@ function PlayerCar:update(dt)
     rearSlipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
   end
   
+  ------ DEBUG
+  d1 = frontSlipRatio
+  d2 = rearSlipRatio
+  
   local frontWheelLoad = gravity * self.mass / 2
   local rearWheelLoad = gravity * self.mass / 2
   
@@ -165,7 +176,7 @@ function PlayerCar:update(dt)
   local rearTractionTorque = -rearTractionForce * self.wheelRadius
   
   ------ Replace with sum of front + rear traction forces
-  local tractionForce = accelForce + brakeForce
+  local tractionForce = frontTractionForce + rearTractionForce
   local tractionForceX = tractionForce * ux
   local tractionForceY = tractionForce * uy
   
@@ -180,8 +191,12 @@ function PlayerCar:update(dt)
   local dragForceX = -self.cDrag * vx * speed
   local dragForceY = -self.cDrag * vy * speed
   
-  local rollResForce = -self.rollingRes
-  if forwardSpeed < 0 then rollResForce = -rollResForce end
+  local rollResForce = 0
+  if forwardSpeed > 0 then
+    rollResForce = -self.rollingRes
+  elseif forwardSpeed < 0
+  then rollResForce = self.rollingRes
+  end
   local rollResFroceX = rollResForce * ux
   local rollResFroceY = rollResForce * uy
   
@@ -245,8 +260,9 @@ function PlayerCar:draw()
   
   -- Debug info
   love.graphics.setColor(0, 0, 0)
-  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, %.2f", self.throttle, self.brake, self.steering), 20, 20)
-  love.graphics.print(string.format("Speed: %.2f m/s / %.1f mph", self:getForwardSpeed(), 2.237 * self:getForwardSpeed()), 20, 35)
+  love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
+  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, %.2f", self.throttle, self.brake, self.steering), 20, 35)
+  love.graphics.print(string.format("Speed: %.1f mph", 2.237 * self:getForwardSpeed()), 20, 50)
   
   local gearString = ""
   if self.gearShiftDelay <= 0 then
@@ -262,7 +278,7 @@ function PlayerCar:draw()
     for i = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
   end
   
-  love.graphics.print(string.format("Gear: %s", gearString), 20, 50)
+  love.graphics.print(string.format("Gear: %s", gearString), 145, 50)
   
   local rpmString = tostring(math.floor(self.rpm))
   if self.redlineRpm - self.rpm < 100 then
@@ -272,13 +288,17 @@ function PlayerCar:draw()
   elseif self.redlineRpm - self.rpm < 500 then
     rpmString = rpmString .. " *"
   end
-  love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
+  love.graphics.print(string.format("RPM: %s", rpmString), 230, 50)
   
-  love.graphics.print(string.format("FW, RW spd: %.1f mph, %.1f mph",
-      2.237 * self.frontWheelAngV * self.wheelRadius,
-      2.237 * self.rearWheelAngV * self.wheelRadius), 20, 80)
-  
-  love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 95)
+  ------ DEBUG
+  local fsrStr = string.format("%.3f", d1)
+  local rsrStr = string.format("%.3f", d2)
+  if math.abs(d1) > 0.05 then fsrStr = fsrStr .. "*" end
+  if math.abs(d1) > 0.06 then fsrStr = fsrStr .. "**" end
+  if math.abs(d2) > 0.05 then rsrStr = rsrStr .. "*" end
+  if math.abs(d2) > 0.06 then rsrStr = rsrStr .. "**" end
+  love.graphics.print(string.format("fsr: %s", fsrStr), 20, 65)
+  love.graphics.print(string.format("rsr: %s", rsrStr), 20, 80)
   
 end
 
