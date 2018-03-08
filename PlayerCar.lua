@@ -14,13 +14,11 @@ PlayerCar = Object:extend()
 function PlayerCar:new(x, y)
   
   -- Define image
-  self.image = love.graphics.newImage("images/CorvetteC5.png")
-  self.originX = self.image:getWidth() / 2
-  self.originY = self.image:getHeight() / 2
+  self.image = Sprite("images/CorvetteC5.png")
   
   -- Define attributes
-  self.length = self.image:getWidth() / pxPerMtr
-  self.width = self.image:getHeight() / pxPerMtr
+  self.length = self.image.width / pxPerMtr
+  self.width = self.image.height / pxPerMtr
   self.maxSteeringAngle = 30 * math.pi/180
   self.wheelbase = 2.65
   self.mass = 1500
@@ -257,7 +255,7 @@ end
 function PlayerCar:draw()
   
   love.graphics.setColor(255, 255, 255)
-  love.graphics.draw(self.image, self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle(), 1, 1, self.originX, self.originY)
+  self.image:draw(self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle())
   
   -- Debug info
   love.graphics.setColor(0, 0, 0)
@@ -279,7 +277,7 @@ function PlayerCar:draw()
     for i = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
   end
   
-  love.graphics.print(string.format("Gear: %s", gearString), 145, 50)
+  love.graphics.print(string.format("Gear: %s", gearString), 120, 65)
   
   local rpmString = tostring(math.floor(self.rpm))
   if self.redlineRpm - self.rpm < 100 then
@@ -289,19 +287,19 @@ function PlayerCar:draw()
   elseif self.redlineRpm - self.rpm < 500 then
     rpmString = rpmString .. " *"
   end
-  love.graphics.print(string.format("RPM: %s", rpmString), 230, 50)
+  love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
   ------ DEBUG
-  local fsrStr = string.format("%.3f", d1)
-  local rsrStr = string.format("%.3f", d2)
+  local fsrStr = string.format("%+.3f", d1)
+  local rsrStr = string.format("%+.3f", d2)
   if math.abs(d1) > 0.05 then fsrStr = fsrStr .. "*" end
   if math.abs(d1) > 0.06 then fsrStr = fsrStr .. "**" end
   if math.abs(d2) > 0.05 then rsrStr = rsrStr .. "*" end
   if math.abs(d2) > 0.06 then rsrStr = rsrStr .. "**" end
-  love.graphics.print(string.format("fsr: %s", fsrStr), 20, 65)
-  love.graphics.print(string.format("rsr: %s", rsrStr), 20, 80)
+  love.graphics.print(string.format("fsr: %s", fsrStr), 20, 80)
+  love.graphics.print(string.format("rsr: %s", rsrStr), 20, 95)
   
-  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 95)
+  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 110)
   
 end
 
