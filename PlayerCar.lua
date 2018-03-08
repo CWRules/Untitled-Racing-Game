@@ -3,7 +3,7 @@
   Class defining the functionality of the player-controlled car.
 --]]
 PlayerCar = Object:extend()
-require("mobdebug").start()
+--require("mobdebug").start()
 
 --[[ PlayerCar:new(x, y)
   PlayerCar constructor.
@@ -15,14 +15,14 @@ function PlayerCar:new(x, y)
   
   -- Define image
   self.image = love.graphics.newImage("images/CorvetteC5.png")
-  self.origin_x = self.image:getWidth() / 2
-  self.origin_y = self.image:getHeight() / 2
+  self.originX = self.image:getWidth() / 2
+  self.originY = self.image:getHeight() / 2
   
   -- Define attributes
-  self.length = self.image:getWidth()
-  self.width = self.image:getHeight()
+  self.length = self.image:getWidth() / pxPerMtr
+  self.width = self.image:getHeight() / pxPerMtr
   self.maxSteeringAngle = 30 * math.pi/180
-  self.wheelbase = 2.65 * love.physics.getMeter()
+  self.wheelbase = 2.65
   self.mass = 1500
   
   self.idleRpm = 1200
@@ -55,7 +55,7 @@ function PlayerCar:new(x, y)
   -- Angular inertia of drivetrain + wheels
   local wheelMass = 20
   local twoWheelsAngInertia = wheelMass * self.wheelRadius^2
-  local drivelineAngInertia = 0.6 -- VERY rough estimate
+  local drivelineAngInertia = 1 -- VERY rough estimate
   self.frontAngInertia = twoWheelsAngInertia
   self.rearAngInertia = twoWheelsAngInertia
   if self.frontWheelDrive then self.frontAngInertia = self.frontAngInertia + drivelineAngInertia end
@@ -78,7 +78,7 @@ function PlayerCar:new(x, y)
   self.gearShiftDelay = 0
   
   -- Set up physics
-  self.body = love.physics.newBody(world, x, y, "dynamic", 1)
+  self.body = love.physics.newBody(world, x, y, "dynamic")
   self.shape = love.physics.newRectangleShape(self.length, self.width)
   local density = (love.physics.getMeter()^2 * self.mass) / (self.length * self.width)
   self.fixture = love.physics.newFixture(self.body, self.shape, density)
@@ -202,7 +202,7 @@ function PlayerCar:update(dt)
   
   -- Cornering
   -- Scale steering angle based on speed
-  local steeringAngle = self.steering * self.maxSteeringAngle / (0.05 * math.abs(forwardSpeed) + 1)
+  local steeringAngle = self.steering * self.maxSteeringAngle / (0.1 * math.abs(forwardSpeed) + 1)
   local steeringRadius = self.wheelbase / math.sin(steeringAngle)
   
   local steeringForceX = 0
@@ -246,6 +246,7 @@ function PlayerCar:update(dt)
   local netForceY = tractionForceY + rollResFroceY + dragForceY + steeringForceY
   
   self.body:applyForce(netForceX, netForceY)
+  self.body:setAngularVelocity(0)
   
 end
 
@@ -256,7 +257,7 @@ end
 function PlayerCar:draw()
   
   love.graphics.setColor(255, 255, 255)
-  love.graphics.draw(self.image, self.body:getX(), self.body:getY(), self.body:getAngle(), 1, 1, self.origin_x, self.origin_y)
+  love.graphics.draw(self.image, self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle(), 1, 1, self.originX, self.originY)
   
   -- Debug info
   love.graphics.setColor(0, 0, 0)
@@ -299,6 +300,8 @@ function PlayerCar:draw()
   if math.abs(d2) > 0.06 then rsrStr = rsrStr .. "**" end
   love.graphics.print(string.format("fsr: %s", fsrStr), 20, 65)
   love.graphics.print(string.format("rsr: %s", rsrStr), 20, 80)
+  
+  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 95)
   
 end
 
@@ -444,7 +447,7 @@ function PlayerCar:reset()
   
   self.body:setAngle(0)
   self.body:setAngularVelocity(0)
-  self.body:setPosition(50, maxY - 50)
+  self.body:setPosition(5, 55)
   self.body:setLinearVelocity(0, 0)
   
 end
