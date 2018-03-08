@@ -6,13 +6,17 @@ function love.load()
   
   Object = require "lib/classic"
   require "PlayerCar"
-  --require("mobdebug").start()
+  require "Sprite"
   
   -- Set up window
   love.graphics.setBackgroundColor(255, 255, 255)
   pxPerMtr = 10
   maxX = love.graphics.getWidth() / pxPerMtr
   maxY = love.graphics.getHeight() / pxPerMtr
+  
+  -- Fonts
+  fontCourier = love.graphics.newFont("cour.ttf", 12)
+  love.graphics.setFont(fontCourier)
   
   -- Initialize physics
   love.physics.setMeter(1)
@@ -24,14 +28,12 @@ function love.load()
   
   -- Create walls
   walls = {}
-  local wallImage = love.graphics.newImage("images/Wall.png")
-  local wallShape = love.physics.newRectangleShape(wallImage:getWidth() / pxPerMtr, wallImage:getHeight() / pxPerMtr)
+  local wallImage = Sprite("images/Wall.png")
+  local wallShape = love.physics.newRectangleShape(wallImage.width / pxPerMtr, wallImage.height / pxPerMtr)
   
   for i = 1, 3 do
     walls[i] = {}
     walls[i].image = wallImage
-    walls[i].originX = wallImage:getWidth() / 2
-    walls[i].originY = wallImage:getHeight() / 2
     walls[i].body = love.physics.newBody(world, 0, 0)
     walls[i].shape = wallShape
     walls[i].fixture = love.physics.newFixture(walls[i].body, walls[i].shape)
@@ -69,7 +71,7 @@ function love.draw()
   
   love.graphics.setColor(0, 0, 0)
   for k, wall in ipairs(walls) do
-    love.graphics.draw(wall.image, wall.body:getX() * pxPerMtr, wall.body:getY() * pxPerMtr, wall.body:getAngle(), 1, 1, wall.originX, wall.originY)
+    wall.image:draw(wall.body:getX() * pxPerMtr, wall.body:getY() * pxPerMtr, wall.body:getAngle())
   end
   
 end
