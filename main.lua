@@ -10,43 +10,39 @@ function love.load()
   
   -- Set up window
   love.graphics.setBackgroundColor(255, 255, 255)
-  maxX = love.graphics.getWidth()
-  maxY = love.graphics.getHeight()
+  pxPerMtr = 10
+  maxX = love.graphics.getWidth() / pxPerMtr
+  maxY = love.graphics.getHeight() / pxPerMtr
   
   -- Initialize physics
-  love.physics.setMeter(5)
+  love.physics.setMeter(1)
   world = love.physics.newWorld(0, 0, true)
   gravity = 9.81
   
   -- Declare car
-  car = PlayerCar(50, maxY - 50)
+  car = PlayerCar(5, maxY - 5)
   
   -- Create walls
   walls = {}
+  local wallImage = love.graphics.newImage("images/Wall.png")
+  local wallShape = love.physics.newRectangleShape(wallImage:getWidth() / pxPerMtr, wallImage:getHeight() / pxPerMtr)
   
-  -- North
-  walls[1] = {}
-  walls[1].body = love.physics.newBody(world, maxX/2, 0)
-  walls[1].shape = love.physics.newRectangleShape(maxX, 20)
-  walls[1].fixture = love.physics.newFixture(walls[1].body, walls[1].shape)
+  for i = 1, 3 do
+    walls[i] = {}
+    walls[i].image = wallImage
+    walls[i].originX = wallImage:getWidth() / 2
+    walls[i].originY = wallImage:getHeight() / 2
+    walls[i].body = love.physics.newBody(world, 0, 0)
+    walls[i].shape = wallShape
+    walls[i].fixture = love.physics.newFixture(walls[i].body, walls[i].shape)
+  end
   
-  -- South
-  walls[2] = {}
-  walls[2].body = love.physics.newBody(world, maxX/2, maxY)
-  walls[2].shape = love.physics.newRectangleShape(maxX, 20)
-  walls[2].fixture = love.physics.newFixture(walls[2].body, walls[2].shape)
+  walls[1].body:setPosition(maxX/2, 0)
   
-  -- West
-  walls[3] = {}
-  walls[3].body = love.physics.newBody(world, 0, maxY/2)
-  walls[3].shape = love.physics.newRectangleShape(20, maxY)
-  walls[3].fixture = love.physics.newFixture(walls[3].body, walls[3].shape)
+  walls[2].body:setPosition(maxX/2, maxY)
   
-  -- East
-  --walls[4] = {}
-  --walls[4].body = love.physics.newBody(world, maxX, maxY/2)
-  --walls[4].shape = love.physics.newRectangleShape(20, maxY)
-  --walls[4].fixture = love.physics.newFixture(walls[4].body, walls[4].shape)
+  walls[3].body:setPosition(0, maxY/2)
+  walls[3].body:setAngle(math.pi/2)
   
 end
 
@@ -73,7 +69,7 @@ function love.draw()
   
   love.graphics.setColor(0, 0, 0)
   for k, wall in ipairs(walls) do
-    love.graphics.polygon("fill", wall.body:getWorldPoints(wall.shape:getPoints()))
+    love.graphics.draw(wall.image, wall.body:getX() * pxPerMtr, wall.body:getY() * pxPerMtr, wall.body:getAngle(), 1, 1, wall.originX, wall.originY)
   end
   
 end
