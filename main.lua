@@ -19,6 +19,7 @@ function love.load()
   love.graphics.setFont(fontCourier)
   
   -- Initialize physics
+  -- Set meter size to 1, do graphics scaling manually
   love.physics.setMeter(1)
   world = love.physics.newWorld(0, 0, true)
   gravity = 9.81
@@ -69,7 +70,7 @@ function love.draw()
   
   car:draw()
   
-  love.graphics.setColor(0, 0, 0)
+  love.graphics.setColor(255, 255, 255)
   for k, wall in ipairs(walls) do
     wall.image:draw(wall.body:getX() * pxPerMtr, wall.body:getY() * pxPerMtr, wall.body:getAngle())
   end
