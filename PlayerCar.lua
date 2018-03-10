@@ -25,17 +25,18 @@ function PlayerCar:new(x, y)
   
   self.idleRpm = 1200
   self.redlineRpm = 6000
-  self.torqueValues = {297.09, 304.16, 310.24, 316.21, 321.50, 325.36, 328.32, 331.21, 332.89, 334.79,
+  local torqueValues = {297.09, 304.16, 310.24, 316.21, 321.50, 325.36, 328.32, 331.21, 332.89, 334.79,
                        337.73, 340.97, 346.18, 349.93, 352.09, 353.66, 352.89, 353.30, 351.66, 346.61,
                        338.96, 329.55, 311.85, 294.41, 274.84}
   
-  self.numTorqueSteps = #self.torqueValues - 1
+  self.numTorqueSteps = #torqueValues - 1
   self.torqueStep = (self.redlineRpm - self.idleRpm) / self.numTorqueSteps
   local ftLbToNm = 1.3558
   
+  -- Build map of RPM to torque values
   self.torqueCurve = {}
   for i = 0, self.numTorqueSteps do
-    self.torqueCurve[i] = {self.idleRpm + (i * self.torqueStep), ftLbToNm * self.torqueValues[i + 1]}
+    self.torqueCurve[i] = {self.idleRpm + (i * self.torqueStep), ftLbToNm * torqueValues[i + 1]}
   end
   
   self.gearRatios = {-2.90, 2.66, 1.78, 1.30, 1.00, 0.74, 0.50}
@@ -50,17 +51,20 @@ function PlayerCar:new(x, y)
   self.frontWheelDrive = false
   self.rearWheelDrive = true
   
-  -- Angular inertia of drivetrain + wheels
+  -- Compute angular inertia of drivetrain + wheels
   local wheelMass = 20
   local twoWheelsAngInertia = wheelMass * self.wheelRadius^2
   local drivelineAngInertia = 1 -- VERY rough estimate
   self.frontAngInertia = twoWheelsAngInertia
   self.rearAngInertia = twoWheelsAngInertia
-  if self.frontWheelDrive then self.frontAngInertia = self.frontAngInertia + drivelineAngInertia end
-  if self.rearWheelDrive then self.rearAngInertia = self.rearAngInertia + drivelineAngInertia end
+  if self.frontWheelDrive then
+    self.frontAngInertia = self.frontAngInertia + drivelineAngInertia
+  end
+  if self.rearWheelDrive then
+    self.rearAngInertia = self.rearAngInertia + drivelineAngInertia
+  end
   
   self.brakeTorque = 6000
-  
   self.cDrag = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
   
@@ -104,7 +108,7 @@ function PlayerCar:update(dt)
   local speed = self:getSpeed()
   local forwardSpeed = self:getForwardSpeed()
   
-  -- Prevent zero crossing
+  -- Prevent zero crossing errors
   if math.abs(forwardSpeed) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
     self.frontWheelAngV = 0
@@ -114,6 +118,7 @@ function PlayerCar:update(dt)
   
   -- Acceleration
   local engineTorque = 0
+  
   if self.gearShiftDelay <= 0 then
     
     local driveWheelSpeed = 0
@@ -128,7 +133,9 @@ function PlayerCar:update(dt)
     local clutchOutputRpm = self.finalDrive * self.gearRatios[self.gear + 1] * driveWheelSpeed * (30/math.pi)
     self.rpm = math.max(math.min(clutchOutputRpm, self.redlineRpm), self.idleRpm)  
     engineTorque = self.throttle * self.driveEfficiency * self:torqueCurveLookup(clutchOutputRpm)
+    
   end
+  
   local accelTorque = engineTorque * self.finalDrive * self.gearRatios[self.gear + 1]
   
   local frontAccelTorque = 0
@@ -173,7 +180,6 @@ function PlayerCar:update(dt)
   local frontTractionTorque = -frontTractionForce * self.wheelRadius
   local rearTractionTorque = -rearTractionForce * self.wheelRadius
   
-  ------ Replace with sum of front + rear traction forces
   local tractionForce = frontTractionForce + rearTractionForce
   local tractionForceX = tractionForce * ux
   local tractionForceY = tractionForce * uy
@@ -192,22 +198,25 @@ function PlayerCar:update(dt)
   local rollResForce = 0
   if forwardSpeed > 0 then
     rollResForce = -self.rollingRes
-  elseif forwardSpeed < 0
-  then rollResForce = self.rollingRes
+  elseif forwardSpeed < 0 then
+    rollResForce = self.rollingRes
   end
   local rollResFroceX = rollResForce * ux
   local rollResFroceY = rollResForce * uy
   
   -- Cornering
   -- Scale steering angle based on speed
-  local steeringAngle = self.steering * self.maxSteeringAngle / (0.1 * math.abs(forwardSpeed) + 1)
+  local speedSteeringFactor = 0.1
+  local steeringAngle = self.steering * self.maxSteeringAngle / (speedSteeringFactor * math.abs(forwardSpeed) + 1)
   local steeringRadius = self.wheelbase / math.sin(steeringAngle)
   
   local steeringForceX = 0
   local steeringForceY = 0
   
   -- Compute steering force
+  ------ Placeholder cornering model
   if steeringAngle ~= 0 then
+    
     local steeringForce = self.mass * forwardSpeed^2 / math.abs(steeringRadius)
     local steeringForceAngle = 0
     
@@ -237,9 +246,10 @@ function PlayerCar:update(dt)
     else
       self.body:setAngle(math.atan2(-vy, -vx))
     end
+    
   end
   
-  -- Apply forces
+  -- Apply net forces
   local netForceX = tractionForceX + rollResFroceX + dragForceX + steeringForceX
   local netForceY = tractionForceY + rollResFroceY + dragForceY + steeringForceY
   
@@ -254,15 +264,17 @@ end
 --]]
 function PlayerCar:draw()
   
+  -- Display car
   love.graphics.setColor(255, 255, 255)
   self.image:draw(self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle())
   
-  -- Debug info
+  -- Basic information
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
   love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, %.2f", self.throttle, self.brake, self.steering), 20, 35)
   love.graphics.print(string.format("Speed: %.1f mph", 2.237 * self:getForwardSpeed()), 20, 50)
   
+  -- Current gear
   local gearString = ""
   if self.gearShiftDelay <= 0 then
     if self.gear == 0 then
@@ -279,6 +291,7 @@ function PlayerCar:draw()
   
   love.graphics.print(string.format("Gear: %s", gearString), 120, 65)
   
+  -- RPM
   local rpmString = tostring(math.floor(self.rpm))
   if self.redlineRpm - self.rpm < 100 then
     rpmString = rpmString .. " ***"
@@ -312,15 +325,20 @@ end
 function PlayerCar:torqueCurveLookup(rpm)
   
   if rpm < self.idleRpm then
+    
     -- Calculate effect of clutch slip and return idle torque times loss from slip
     local deltaRpm = self.idleRpm - rpm
     local slipFactor = -0.0002 * deltaRpm + 1
     return slipFactor * self:torqueCurveLookup(self.idleRpm)
+    
   elseif rpm >= self.redlineRpm then
+    
     -- Fuel cutoff
     return 0
+    
   else
-    -- Linear interpolation between nearest values
+    
+    -- Linear interpolation between nearest values in torque curve map
     local lowerRpmRank = math.floor((rpm - self.idleRpm) / self.torqueStep)
     
     local x0 = self.torqueCurve[lowerRpmRank][1]
@@ -329,6 +347,7 @@ function PlayerCar:torqueCurveLookup(rpm)
     local y1 = self.torqueCurve[lowerRpmRank + 1][2]
     
     return y0 + (rpm - x0) * (y1 - y0) / (x1 - x0)
+    
   end
   
 end
@@ -336,6 +355,7 @@ end
 
 --[[ PlayerCar:computeTractionForce(slipRatio, load)
   Returns the traction force for a given slip ratio and wheel load.
+  Traction force increases rapidly with magnitude of slip ratio until 0.06, then drops off gradually.
   
   slipRatio: Slip ratio of the tire.
   tireLoad: Load in Newtons on the tire.
