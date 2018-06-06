@@ -45,8 +45,6 @@ function PlayerCar:new(x, y)
   self.driveEfficiency = 0.85
   self.gearShiftTime = 0.7
   
-  self.frontWheelAngV = 0
-  self.rearWheelAngV = 0
   self.tireMu = 1.17
   self.frontWheelDrive = false
   self.rearWheelDrive = true
@@ -65,7 +63,7 @@ function PlayerCar:new(x, y)
   end
   
   self.brakeTorque = 6000
-  self.cDrag = 0.42
+  self.dragCoeff = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
   
   self.speedZeroThreshold = 0.02
@@ -74,6 +72,9 @@ function PlayerCar:new(x, y)
   self.throttle = 0
   self.brake = 0
   self.steering = 0
+  
+  self.frontWheelAngV = 0
+  self.rearWheelAngV = 0
   
   self.rpm = self.idleRpm
   self.gear = 1
@@ -192,8 +193,8 @@ function PlayerCar:update(dt)
   self.rearWheelAngV = self.rearWheelAngV + (rearWheelTorque * dt / self.rearAngInertia)
   
   -- Drag and rolling resistance
-  local dragForceX = -self.cDrag * vx * speed
-  local dragForceY = -self.cDrag * vy * speed
+  local dragForceX = -self.dragCoeff * vx * speed
+  local dragForceY = -self.dragCoeff * vy * speed
   
   local rollResForce = 0
   if forwardSpeed > 0 then
@@ -254,7 +255,7 @@ function PlayerCar:update(dt)
   local netForceY = tractionForceY + rollResFroceY + dragForceY + steeringForceY
   
   self.body:applyForce(netForceX, netForceY)
-  self.body:setAngularVelocity(0)
+  self.body:setAngularVelocity(0) -- Necessary for placeholder cornering model. Remove later.
   
 end
 
@@ -326,9 +327,8 @@ function PlayerCar:torqueCurveLookup(rpm)
   
   if rpm < self.idleRpm then
     
-    -- Calculate effect of clutch slip and return idle torque times loss from slip
-    local deltaRpm = self.idleRpm - rpm
-    local slipFactor = -0.0002 * deltaRpm + 1
+    -- Below idle RPM, scale torque down to simulate clutch slip
+    local slipFactor = 0.5 * rpm / self.idleRpm
     return slipFactor * self:torqueCurveLookup(self.idleRpm)
     
   elseif rpm >= self.redlineRpm then
