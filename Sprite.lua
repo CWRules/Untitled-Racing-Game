@@ -1,6 +1,6 @@
 
 --[[ Sprite
-  Class defining the Sprite class; a wrapper to simplify drawing images for physics objects.
+  Defines the Sprite class; a wrapper to simplify drawing images for physics objects.
 --]]
 Sprite = Object:extend()
 
