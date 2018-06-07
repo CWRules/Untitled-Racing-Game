@@ -223,9 +223,9 @@ function PlayerCar:update(dt)
   local rearSideSlip = math.atan2(rearWheelLatSpeed, math.abs(forwardSpeed))
   
   if forwardSpeed > 0 then
-    frontSideSlip = frontSideSlip + steeringAngle
-  elseif forwardSpeed < 0 then
     frontSideSlip = frontSideSlip - steeringAngle
+  elseif forwardSpeed < 0 then
+    frontSideSlip = frontSideSlip + steeringAngle
   end
   
   ------ DEBUG
@@ -239,8 +239,8 @@ function PlayerCar:update(dt)
   local corneringForceY = (frontCorneringForce + rearCorneringForce) * ux
   
   -- Apply cornering torques
-  self.body:applyTorque(frontCorneringForce * wheelsCenterDist * math.cos(steeringAngle))
-  self.body:applyTorque(-rearCorneringForce * wheelsCenterDist)
+  self.body:applyTorque(-frontCorneringForce * wheelsCenterDist * math.cos(steeringAngle))
+  self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
   
   -- Apply net forces
   local netForceX = tractionForceX + rollResForceX + dragForceX + corneringForceX
@@ -306,10 +306,10 @@ function PlayerCar:draw()
   
   local fssStr = string.format("%+.3f", d3)
   local rssStr = string.format("%+.3f", d4)
-  if math.abs(d3) > 2.00 then fsrStr = fssStr .. "*" end
-  if math.abs(d3) > 2.41 then fsrStr = fssStr .. "**" end
-  if math.abs(d4) > 2.00 then rsrStr = rssStr .. "*" end
-  if math.abs(d4) > 2.41 then rsrStr = rssStr .. "**" end
+  if math.abs(d3) > 0.350 then fsrStr = fssStr .. "*" end
+  if math.abs(d3) > 0.418 then fsrStr = fssStr .. "**" end
+  if math.abs(d4) > 0.350 then rsrStr = rssStr .. "*" end
+  if math.abs(d4) > 0.418 then rsrStr = rssStr .. "**" end
   love.graphics.print(string.format("fss: %s", fssStr), 20, 110)
   love.graphics.print(string.format("rss: %s", rssStr), 20, 125)
   
