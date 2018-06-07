@@ -355,7 +355,8 @@ end
 
 --[[ PlayerCar:computeTractionForce(slipRatio, load)
   Returns the traction force for a given slip ratio and wheel load.
-  Traction force increases rapidly with magnitude of slip ratio until 0.06, then drops off gradually.
+  Traction force increases rapidly with magnitude of slip ratio up to a point,
+  then drops off gradually.
   
   slipRatio: Slip ratio of the tire.
   tireLoad: Load in Newtons on the tire.
@@ -371,6 +372,33 @@ function PlayerCar:computeTractionForce(slipRatio, tireLoad)
      loadFactor = slipRatio / 0.06
   else
     loadFactor = (-0.3/0.94)*(slipRatio - 0.06) + 1
+    if loadFactor < 0.5 then loadFactor = 0.5 end
+  end
+  
+  return loadFactor * tireLoad * self.tireMu
+  
+end
+
+
+--[[ PlayerCar:computeCorneringForce(sideSlipRatio, load)
+  Returns the cornering force for a given sideslip ratio and wheel load.
+  Cornering force increases rapidly with magnitude of sideslip ratio up to a point,
+  then drops off gradually.
+  
+  sideSlipRatio: Sideslip ratio of the tire.
+  tireLoad: Load in Newtons on the tire.
+--]]
+function PlayerCar:computeCorneringForce(sideSlipRatio, tireLoad)
+  
+  local loadFactor = 0
+  
+  if slipRatio < -2.39 then
+    loadFactor = (-0.00775 * slipRatio) - 1
+    if loadFactor > -0.5 then loadFactor = -0.5 end
+  elseif slipRatio <= 2.39 then
+     loadFactor = slipRatio * 0.41
+  else
+    loadFactor = (-0.00775 * slipRatio) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
