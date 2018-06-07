@@ -100,7 +100,7 @@ function PlayerCar:update(dt)
   self:processInputs(dt)
   
   ------ DEBUG
-  d1, d2 = 0, 0
+  d1, d2, d3, d4 = 0, 0, 0, 0
   
   -- Frequently accessed values
   local ux = math.cos(self.body:getAngle())
@@ -108,10 +108,12 @@ function PlayerCar:update(dt)
   local vx, vy = self.body:getLinearVelocity()
   local speed = self:getSpeed()
   local forwardSpeed = self:getForwardSpeed()
+  local lateralSpeed = self:getLateralSpeed()
   
   -- Prevent zero crossing errors
-  if math.abs(forwardSpeed) < self.speedZeroThreshold and self.throttle == 0 then
+  if math.abs(speed) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
+    self.body:setAngularVelocity(0)
     self.frontWheelAngV = 0
     self.rearWheelAngV = 0
     return
@@ -202,60 +204,49 @@ function PlayerCar:update(dt)
   elseif forwardSpeed < 0 then
     rollResForce = self.rollingRes
   end
-  local rollResFroceX = rollResForce * ux
-  local rollResFroceY = rollResForce * uy
+  local rollResForceX = rollResForce * ux
+  local rollResForceY = rollResForce * uy
   
   -- Cornering
   -- Scale steering angle based on speed
   local speedSteeringFactor = 0.1
   local steeringAngle = self.steering * self.maxSteeringAngle / (speedSteeringFactor * math.abs(forwardSpeed) + 1)
-  local steeringRadius = self.wheelbase / math.sin(steeringAngle)
   
-  local steeringForceX = 0
-  local steeringForceY = 0
+  -- Compute cornering forces
+  local wheelsCenterDist = (self.length - self.wheelbase) / 2
+  local angularVelocity = self.body:getAngularVelocity()
   
-  -- Compute steering force
-  ------ Placeholder cornering model
-  if steeringAngle ~= 0 then
-    
-    local steeringForce = self.mass * forwardSpeed^2 / math.abs(steeringRadius)
-    local steeringForceAngle = 0
-    
-    -- Rotate force to be at 90 degrees to the facing of the front wheels
-    if forwardSpeed > 0 then
-      if self.steering < 0 then
-        steeringForceAngle = steeringAngle - math.pi/2
-      else
-        steeringForceAngle = steeringAngle + math.pi/2
-      end
-    else
-      if self.steering < 0 then
-        steeringForceAngle = -steeringAngle - math.pi/2
-      else
-        steeringForceAngle = -steeringAngle + math.pi/2
-      end
-    end
-    
-    steeringForceX = math.cos(steeringForceAngle)*steeringForce*ux - math.sin(steeringForceAngle)*steeringForce*uy
-    steeringForceY = math.sin(steeringForceAngle)*steeringForce*ux + math.cos(steeringForceAngle)*steeringForce*uy
-    
-    -- Set angle to match direction of travel (or directly opposite if closer)
-    local angleDiff = math.acos((ux*vx + uy*vy) / speed)
-    
-    if math.abs(angleDiff) < math.pi/2 then
-      self.body:setAngle(math.atan2(vy, vx))
-    else
-      self.body:setAngle(math.atan2(-vy, -vx))
-    end
-    
+  local frontWheelLatSpeed = lateralSpeed + (angularVelocity * wheelsCenterDist)
+  local rearWheelLatSpeed = lateralSpeed - (angularVelocity * wheelsCenterDist)
+  
+  local frontSideSlip = math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))
+  local rearSideSlip = math.atan2(rearWheelLatSpeed, math.abs(forwardSpeed))
+  
+  if forwardSpeed > 0 then
+    frontSideSlip = frontSideSlip + steeringAngle
+  elseif forwardSpeed < 0 then
+    frontSideSlip = frontSideSlip - steeringAngle
   end
   
+  ------ DEBUG
+  d3 = frontSideSlip
+  d4 = rearSideSlip
+  
+  local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad) * math.cos(steeringAngle)
+  local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad)
+  
+  local corneringForceX = (frontCorneringForce + rearCorneringForce) * -uy
+  local corneringForceY = (frontCorneringForce + rearCorneringForce) * ux
+  
+  -- Apply cornering torques
+  self.body:applyTorque(frontCorneringForce * wheelsCenterDist * math.cos(steeringAngle))
+  self.body:applyTorque(-rearCorneringForce * wheelsCenterDist)
+  
   -- Apply net forces
-  local netForceX = tractionForceX + rollResFroceX + dragForceX + steeringForceX
-  local netForceY = tractionForceY + rollResFroceY + dragForceY + steeringForceY
+  local netForceX = tractionForceX + rollResForceX + dragForceX + corneringForceX
+  local netForceY = tractionForceY + rollResForceY + dragForceY + corneringForceY
   
   self.body:applyForce(netForceX, netForceY)
-  self.body:setAngularVelocity(0) -- Necessary for placeholder cornering model. Remove later.
   
 end
 
@@ -313,7 +304,16 @@ function PlayerCar:draw()
   love.graphics.print(string.format("fsr: %s", fsrStr), 20, 80)
   love.graphics.print(string.format("rsr: %s", rsrStr), 20, 95)
   
-  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 110)
+  local fssStr = string.format("%+.3f", d3)
+  local rssStr = string.format("%+.3f", d4)
+  if math.abs(d3) > 2.00 then fsrStr = fssStr .. "*" end
+  if math.abs(d3) > 2.41 then fsrStr = fssStr .. "**" end
+  if math.abs(d4) > 2.00 then rsrStr = rssStr .. "*" end
+  if math.abs(d4) > 2.41 then rsrStr = rssStr .. "**" end
+  love.graphics.print(string.format("fss: %s", fssStr), 20, 110)
+  love.graphics.print(string.format("rss: %s", rssStr), 20, 125)
+  
+  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 140)
   
 end
 
@@ -328,7 +328,7 @@ function PlayerCar:torqueCurveLookup(rpm)
   if rpm < self.idleRpm then
     
     -- Below idle RPM, scale torque down to simulate clutch slip
-    local slipFactor = 0.5 * rpm / self.idleRpm
+    local slipFactor = (0.5 * rpm / self.idleRpm) + 0.5
     return slipFactor * self:torqueCurveLookup(self.idleRpm)
     
   elseif rpm >= self.redlineRpm then
@@ -380,25 +380,25 @@ function PlayerCar:computeTractionForce(slipRatio, tireLoad)
 end
 
 
---[[ PlayerCar:computeCorneringForce(sideSlipRatio, load)
-  Returns the cornering force for a given sideslip ratio and wheel load.
-  Cornering force increases rapidly with magnitude of sideslip ratio up to a point,
+--[[ PlayerCar:computeCorneringForce(sideSlipAngle, load)
+  Returns the cornering force for a given sideslip angle and wheel load.
+  Cornering force increases rapidly with magnitude of sideslip angle up to a point,
   then drops off gradually.
   
-  sideSlipRatio: Sideslip ratio of the tire.
+  sideSlipAngle: Sideslip angle of the tire in radians.
   tireLoad: Load in Newtons on the tire.
 --]]
-function PlayerCar:computeCorneringForce(sideSlipRatio, tireLoad)
+function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad)
   
   local loadFactor = 0
   
-  if slipRatio < -2.39 then
-    loadFactor = (-0.00775 * slipRatio) - 1
+  if sideSlipAngle < -0.418 then
+    loadFactor = (-0.444 * sideSlipAngle) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif slipRatio <= 2.39 then
-     loadFactor = slipRatio * 0.41
+  elseif sideSlipAngle <= 0.418 then
+     loadFactor = sideSlipAngle * 23.5
   else
-    loadFactor = (-0.00775 * slipRatio) + 1
+    loadFactor = (-0.444 * sideSlipAngle) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
@@ -517,6 +517,18 @@ function PlayerCar:getForwardSpeed()
   
   local vx, vy = self.body:getLinearVelocity()
   local vAngle = math.atan2(vy, vx)
+  return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
+  
+end
+
+
+--[[ PlayerCar:getLateralSpeed()
+  Returns the speed of the car perpendicular to the direction it is currently facing.
+--]]
+function PlayerCar:getLateralSpeed()
+  
+  local vx, vy = self.body:getLinearVelocity()
+  local vAngle = math.atan2(vx, -vy)
   return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
   
 end
