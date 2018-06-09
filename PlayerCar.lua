@@ -3,7 +3,8 @@
   Class defining the functionality of the player-controlled car.
 --]]
 PlayerCar = Object:extend()
---require("mobdebug").start()
+------DEBUG
+require("mobdebug").start()
 
 --[[ PlayerCar:new(x, y)
   PlayerCar constructor.
@@ -100,7 +101,7 @@ function PlayerCar:update(dt)
   self:processInputs(dt)
   
   ------ DEBUG
-  d1, d2, d3, d4 = 0, 0, 0, 0
+  d1, d2, d3, d4, d5, d6 = 0, 0, 0, 0, 0, 0
   
   -- Frequently accessed values
   local ux = math.cos(self.body:getAngle())
@@ -118,6 +119,7 @@ function PlayerCar:update(dt)
     self.rearWheelAngV = 0
     return
   end
+  
   
   -- Acceleration
   local engineTorque = 0
@@ -152,12 +154,14 @@ function PlayerCar:update(dt)
     rearAccelTorque = accelTorque
   end
   
+  
   -- Braking
   local brakeTorque = -self.brake * self.brakeTorque
   local frontBrakeTorque = brakeTorque / 2
   local rearBrakeTorque = brakeTorque / 2
   if self.frontWheelAngV < 0 then frontBrakeTorque = -frontBrakeTorque end
   if self.rearWheelAngV < 0 then rearBrakeTorque = -rearBrakeTorque end
+  
   
   -- Traction force
   local frontSlipRatio = 0
@@ -169,10 +173,6 @@ function PlayerCar:update(dt)
   if forwardSpeed ~= 0 or self.rearWheelAngV ~= 0 then
     rearSlipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
   end
-  
-  ------ DEBUG
-  d1 = frontSlipRatio
-  d2 = rearSlipRatio
   
   local frontWheelLoad = gravity * self.mass / 2
   local rearWheelLoad = gravity * self.mass / 2
@@ -187,12 +187,14 @@ function PlayerCar:update(dt)
   local tractionForceX = tractionForce * ux
   local tractionForceY = tractionForce * uy
   
+  
   -- Update wheel angular velocity
   local frontWheelTorque = frontAccelTorque + frontBrakeTorque + frontTractionTorque
   local rearWheelTorque = rearAccelTorque + rearBrakeTorque + rearTractionTorque
   
   self.frontWheelAngV = self.frontWheelAngV + (frontWheelTorque * dt / self.frontAngInertia)
   self.rearWheelAngV = self.rearWheelAngV + (rearWheelTorque * dt / self.rearAngInertia)
+  
   
   -- Drag and rolling resistance
   local dragForceX = -self.dragCoeff * vx * speed
@@ -207,6 +209,14 @@ function PlayerCar:update(dt)
   local rollResForceX = rollResForce * ux
   local rollResForceY = rollResForce * uy
   
+  
+  -- Apply net forces
+  local netForceX = tractionForceX + rollResForceX + dragForceX
+  local netForceY = tractionForceY + rollResForceY + dragForceY
+  
+  self.body:applyForce(netForceX, netForceY)
+  
+  
   -- Cornering
   -- Scale steering angle based on speed
   local speedSteeringFactor = 0.1
@@ -214,10 +224,10 @@ function PlayerCar:update(dt)
   
   -- Compute cornering forces
   local wheelsCenterDist = (self.length - self.wheelbase) / 2
-  local angularVelocity = self.body:getAngularVelocity()
+  local wheelRelativeSpeed = self.body:getAngularVelocity() * wheelsCenterDist
   
-  local frontWheelLatSpeed = lateralSpeed + (angularVelocity * wheelsCenterDist)
-  local rearWheelLatSpeed = lateralSpeed - (angularVelocity * wheelsCenterDist)
+  local frontWheelLatSpeed = lateralSpeed + wheelRelativeSpeed
+  local rearWheelLatSpeed = lateralSpeed - wheelRelativeSpeed
   
   local frontSideSlip = math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))
   local rearSideSlip = math.atan2(rearWheelLatSpeed, math.abs(forwardSpeed))
@@ -228,25 +238,28 @@ function PlayerCar:update(dt)
     frontSideSlip = frontSideSlip + steeringAngle
   end
   
-  ------ DEBUG
-  d3 = frontSideSlip
-  d4 = rearSideSlip
-  
   local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad) * math.cos(steeringAngle)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad)
   
-  local corneringForceX = (frontCorneringForce + rearCorneringForce) * -uy
-  local corneringForceY = (frontCorneringForce + rearCorneringForce) * ux
+  -- Apply forces at offset to get torques
+  local frontCorneringForceX = frontCorneringForce*-uy
+  local frontCorneringForceY = frontCorneringForce*ux
+  local rearCorneringForceX = rearCorneringForce*-uy
+  local rearCorneringForceY = rearCorneringForce*ux
   
-  -- Apply cornering torques
-  self.body:applyTorque(-frontCorneringForce * wheelsCenterDist * math.cos(steeringAngle))
+  ------ DEBUG
+  d1 = frontSideSlip * 108/math.pi
+  d2 = rearSideSlip * 108/math.pi
+  d3 = frontCorneringForceX
+  d4 = frontCorneringForceY
+  d5 = rearCorneringForceX
+  d6 = rearCorneringForceY
+  
+  self.body:applyForce(frontCorneringForceX, frontCorneringForceY)--, self.body:getX() + ux*wheelsCenterDist, self.body:getY() + uy*wheelsCenterDist)
+  self.body:applyForce(rearCorneringForceX, rearCorneringForceY)--, self.body:getX() - ux*wheelsCenterDist, self.body:getY() - uy*wheelsCenterDist)
+  
+  self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
   self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
-  
-  -- Apply net forces
-  local netForceX = tractionForceX + rollResForceX + dragForceX + corneringForceX
-  local netForceY = tractionForceY + rollResForceY + dragForceY + corneringForceY
-  
-  self.body:applyForce(netForceX, netForceY)
   
 end
 
@@ -295,25 +308,13 @@ function PlayerCar:draw()
   love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
   ------ DEBUG
-  local fsrStr = string.format("%+.3f", d1)
-  local rsrStr = string.format("%+.3f", d2)
-  if math.abs(d1) > 0.05 then fsrStr = fsrStr .. "*" end
-  if math.abs(d1) > 0.06 then fsrStr = fsrStr .. "**" end
-  if math.abs(d2) > 0.05 then rsrStr = rsrStr .. "*" end
-  if math.abs(d2) > 0.06 then rsrStr = rsrStr .. "**" end
-  love.graphics.print(string.format("fsr: %s", fsrStr), 20, 80)
-  love.graphics.print(string.format("rsr: %s", rsrStr), 20, 95)
+  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 80)
   
-  local fssStr = string.format("%+.3f", d3)
-  local rssStr = string.format("%+.3f", d4)
-  if math.abs(d3) > 0.350 then fsrStr = fssStr .. "*" end
-  if math.abs(d3) > 0.418 then fsrStr = fssStr .. "**" end
-  if math.abs(d4) > 0.350 then rsrStr = rssStr .. "*" end
-  if math.abs(d4) > 0.418 then rsrStr = rssStr .. "**" end
-  love.graphics.print(string.format("fss: %s", fssStr), 20, 110)
-  love.graphics.print(string.format("rss: %s", rssStr), 20, 125)
+  love.graphics.print(string.format("fss: % 3d", d1), 20, 95)
+  love.graphics.print(string.format("rss: % 3d", d2), 20, 110)
   
-  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 140)
+  love.graphics.print(string.format("fcf: % 3d, % 3d", d3/1000, d4/1000), 20, 125)
+  love.graphics.print(string.format("rcf: % 3d, % 3d", d5/1000, d6/1000), 20, 140)
   
 end
 
