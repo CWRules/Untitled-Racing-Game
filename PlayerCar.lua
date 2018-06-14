@@ -223,7 +223,7 @@ function PlayerCar:update(dt)
   local steeringAngle = self.steering * self.maxSteeringAngle / (speedSteeringFactor * math.abs(forwardSpeed) + 1)
   
   -- Compute cornering forces
-  local wheelsCenterDist = (self.length - self.wheelbase) / 2
+  local wheelsCenterDist = self.wheelbase / 2
   local wheelRelativeSpeed = self.body:getAngularVelocity() * wheelsCenterDist
   
   local frontWheelLatSpeed = lateralSpeed + wheelRelativeSpeed
@@ -248,15 +248,13 @@ function PlayerCar:update(dt)
   local rearCorneringForceY = rearCorneringForce*ux
   
   ------ DEBUG
-  d1 = frontSideSlip * 108/math.pi
-  d2 = rearSideSlip * 108/math.pi
-  d3 = frontCorneringForceX
-  d4 = frontCorneringForceY
-  d5 = rearCorneringForceX
-  d6 = rearCorneringForceY
+  d1 = frontSideSlip * 180/math.pi
+  d2 = rearSideSlip * 180/math.pi
+  d3 = frontCorneringForce
+  d4 = rearCorneringForce
   
-  self.body:applyForce(frontCorneringForceX, frontCorneringForceY)--, self.body:getX() + ux*wheelsCenterDist, self.body:getY() + uy*wheelsCenterDist)
-  self.body:applyForce(rearCorneringForceX, rearCorneringForceY)--, self.body:getX() - ux*wheelsCenterDist, self.body:getY() - uy*wheelsCenterDist)
+  self.body:applyForce(frontCorneringForceX, frontCorneringForceY)--, ux*wheelsCenterDist, uy*wheelsCenterDist)
+  self.body:applyForce(rearCorneringForceX, rearCorneringForceY)--, -ux*wheelsCenterDist, -uy*wheelsCenterDist)
   
   self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
   self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
@@ -313,8 +311,8 @@ function PlayerCar:draw()
   love.graphics.print(string.format("fss: % 3d", d1), 20, 95)
   love.graphics.print(string.format("rss: % 3d", d2), 20, 110)
   
-  love.graphics.print(string.format("fcf: % 3d, % 3d", d3/1000, d4/1000), 20, 125)
-  love.graphics.print(string.format("rcf: % 3d, % 3d", d5/1000, d6/1000), 20, 140)
+  love.graphics.print(string.format("fcf: % 3d", d3/1000), 20, 125)
+  love.graphics.print(string.format("rcf: % 3d", d4/1000), 20, 140)
   
 end
 
@@ -393,13 +391,13 @@ function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad)
   
   local loadFactor = 0
   
-  if sideSlipAngle < -0.418 then
-    loadFactor = (-0.444 * sideSlipAngle) - 1
+  if sideSlipAngle < -0.0413 then
+    loadFactor = (-0.415 * sideSlipAngle) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif sideSlipAngle <= 0.418 then
-     loadFactor = sideSlipAngle * 23.5
+  elseif sideSlipAngle <= 0.0413 then
+     loadFactor = sideSlipAngle * 23.8
   else
-    loadFactor = (-0.444 * sideSlipAngle) + 1
+    loadFactor = (-0.415 * sideSlipAngle) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
