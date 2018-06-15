@@ -177,8 +177,8 @@ function PlayerCar:update(dt)
   local frontWheelLoad = gravity * self.mass / 2
   local rearWheelLoad = gravity * self.mass / 2
   
-  local frontTractionForce = self:computeTractionForce(frontSlipRatio, frontWheelLoad)
-  local rearTractionForce = self:computeTractionForce(rearSlipRatio, rearWheelLoad)
+  local frontTractionForce = self:computeTractionForce(frontSlipRatio, frontWheelLoad, self.tireMu)
+  local rearTractionForce = self:computeTractionForce(rearSlipRatio, rearWheelLoad, self.tireMu)
   
   local frontTractionTorque = -frontTractionForce * self.wheelRadius
   local rearTractionTorque = -rearTractionForce * self.wheelRadius
@@ -238,8 +238,8 @@ function PlayerCar:update(dt)
     frontSideSlip = frontSideSlip + steeringAngle
   end
   
-  local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad) * math.cos(steeringAngle)
-  local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad)
+  local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
+  local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
   
   -- Apply forces at offset to get torques
   local frontCorneringForceX = frontCorneringForce*-uy
@@ -359,8 +359,9 @@ end
   
   slipRatio: Slip ratio of the tire.
   tireLoad: Load in Newtons on the tire.
+  tireMu: Tire friction coefficient.
 --]]
-function PlayerCar:computeTractionForce(slipRatio, tireLoad)
+function PlayerCar:computeTractionForce(slipRatio, tireLoad, tireMu)
   
   local loadFactor = 0
   
@@ -374,7 +375,7 @@ function PlayerCar:computeTractionForce(slipRatio, tireLoad)
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
-  return loadFactor * tireLoad * self.tireMu
+  return loadFactor * tireLoad * tireMu
   
 end
 
@@ -386,8 +387,9 @@ end
   
   sideSlipAngle: Sideslip angle of the tire in radians.
   tireLoad: Load in Newtons on the tire.
+  tireMu: Tire friction coefficient.
 --]]
-function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad)
+function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad, tireMu)
   
   local loadFactor = 0
   
@@ -401,7 +403,7 @@ function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad)
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
-  return loadFactor * tireLoad * self.tireMu
+  return loadFactor * tireLoad * tireMu
   
 end
 
