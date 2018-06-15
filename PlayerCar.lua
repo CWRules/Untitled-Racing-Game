@@ -308,11 +308,25 @@ function PlayerCar:draw()
   ------ DEBUG
   love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 80)
   
-  love.graphics.print(string.format("fss: % 3d", d1), 20, 95)
-  love.graphics.print(string.format("rss: % 3d", d2), 20, 110)
+  love.graphics.print(string.format("fss: % 2.1f", d1), 20, 95)
+  love.graphics.print(string.format("rss: % 2.1f", d2), 20, 110)
   
-  love.graphics.print(string.format("fcf: % 3d", d3/1000), 20, 125)
-  love.graphics.print(string.format("rcf: % 3d", d4/1000), 20, 140)
+  love.graphics.print(string.format("fcf: % .1f", d3/1000), 20, 125)
+  love.graphics.print(string.format("rcf: % .1f", d4/1000), 20, 140)
+  
+  -- Facing and velocity vectors
+  love.graphics.setColor(0, 0, 255)
+  love.graphics.line( self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr,
+    self.body:getX()*pxPerMtr + 40*math.cos(self.body:getAngle()), self.body:getY()*pxPerMtr + 40*math.sin(self.body:getAngle()) )
+  
+  if math.abs(self:getSpeed()) > 0 then
+    
+    love.graphics.setColor(255, 0, 0)
+    local vx, vy = self.body:getLinearVelocity()
+    love.graphics.line( self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr,
+      self.body:getX()*pxPerMtr + 40*vx/self:getSpeed(), self.body:getY()*pxPerMtr + 40*vy/self:getSpeed() )
+    
+  end
   
 end
 
