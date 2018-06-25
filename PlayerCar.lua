@@ -241,11 +241,14 @@ function PlayerCar:update(dt)
   local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
   
+  ------ Drift test
+  rearCorneringForce = rearCorneringForce * 0.9
+  
   -- Apply forces at offset to get torques
-  local frontCorneringForceX = frontCorneringForce*-uy
-  local frontCorneringForceY = frontCorneringForce*ux
-  local rearCorneringForceX = rearCorneringForce*-uy
-  local rearCorneringForceY = rearCorneringForce*ux
+  local frontCorneringForceX = frontCorneringForce*uy
+  local frontCorneringForceY = frontCorneringForce*-ux
+  local rearCorneringForceX = rearCorneringForce*uy
+  local rearCorneringForceY = rearCorneringForce*-ux
   
   ------ DEBUG
   d1 = frontSideSlip * 180/math.pi
@@ -543,7 +546,9 @@ end
 function PlayerCar:getLateralSpeed()
   
   local vx, vy = self.body:getLinearVelocity()
-  local vAngle = math.atan2(vx, -vy)
-  return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
+  local vAngle = math.atan2(vy, vx)
+  local theta = (math.pi / 2) + self.body:getAngle() - vAngle
+  
+  return math.cos(theta) * math.sqrt(vx^2 + vy^2)
   
 end
