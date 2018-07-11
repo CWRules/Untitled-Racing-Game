@@ -101,7 +101,7 @@ function PlayerCar:update(dt)
   self:processInputs(dt)
   
   ------ DEBUG
-  d1, d2, d3, d4, d5, d6 = 0, 0, 0, 0, 0, 0
+  d0, d1, d2, d3, d4, d5, d6 = 0, 0, 0, 0, 0, 0, 0
   
   -- Frequently accessed values
   local ux = math.cos(self.body:getAngle())
@@ -219,8 +219,15 @@ function PlayerCar:update(dt)
   
   -- Cornering
   -- Scale steering angle based on speed
+  -- TODO: Scale based on maximum cornering force.
+  --       Set max such that peak force can be reached in the direction from facing to velocity vectors.
+  --       Direction of travel + angle of peak cornering force
+  --       Need to scale with speed as well?
   local speedSteeringFactor = 0.1
   local steeringAngle = self.steering * self.maxSteeringAngle / (speedSteeringFactor * math.abs(forwardSpeed) + 1)
+  
+  ------ DEBUG
+  d0 = steeringAngle * 180/math.pi
   
   -- Compute cornering forces
   local wheelsCenterDist = self.wheelbase / 2
@@ -242,7 +249,7 @@ function PlayerCar:update(dt)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
   
   ------ Drift test
-  rearCorneringForce = rearCorneringForce * 0.9
+  rearCorneringForce = rearCorneringForce * 0.95
   
   -- Apply forces at offset to get torques
   local frontCorneringForceX = frontCorneringForce*uy
@@ -277,7 +284,7 @@ function PlayerCar:draw()
   -- Basic information
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
-  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, %.2f", self.throttle, self.brake, self.steering), 20, 35)
+  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f/% 3.1f", self.throttle, self.brake, self.steering, d0), 20, 35)
   love.graphics.print(string.format("Speed: %.1f mph", 2.237 * self:getForwardSpeed()), 20, 50)
   
   -- Current gear
@@ -381,14 +388,16 @@ end
 function PlayerCar:computeTractionForce(slipRatio, tireLoad, tireMu)
   
   local loadFactor = 0
+  local peakGripRatio = 0.054
+  local gripFalloff = -0.009
   
-  if slipRatio < -0.06 then
-    loadFactor = (-0.3/0.94)*(slipRatio + 0.06) - 1
+  if slipRatio < -peakGripRatio then
+    loadFactor = (gripFalloff * slipRatio) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif slipRatio <= 0.06 then
-     loadFactor = slipRatio / 0.06
+  elseif slipRatio <= peakGripRatio then
+     loadFactor = slipRatio / peakGripRatio
   else
-    loadFactor = (-0.3/0.94)*(slipRatio - 0.06) + 1
+    loadFactor = (gripFalloff * slipRatio) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
@@ -409,14 +418,16 @@ end
 function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad, tireMu)
   
   local loadFactor = 0
+  local peakGripAngle = 0.0413
+  local gripFalloff = -0.415
   
-  if sideSlipAngle < -0.0413 then
-    loadFactor = (-0.415 * sideSlipAngle) - 1
+  if sideSlipAngle < -peakGripAngle then
+    loadFactor = (gripFalloff * sideSlipAngle) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif sideSlipAngle <= 0.0413 then
-     loadFactor = sideSlipAngle * 23.8
+  elseif sideSlipAngle <= peakGripAngle then
+     loadFactor = sideSlipAngle / peakGripAngle
   else
-    loadFactor = (-0.415 * sideSlipAngle) + 1
+    loadFactor = (gripFalloff * sideSlipAngle) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
