@@ -88,6 +88,12 @@ function PlayerCar:new(x, y)
   self.fixture = love.physics.newFixture(self.body, self.shape, density)
   self.fixture:setRestitution(0.05)
   
+  -- Traction and cornering force constants
+  self.idealSlipRatio = 0.054
+  self.tractionForceFalloff = -0.009
+  self.idealSideSlipAngle = 0.0413
+  self.corneringForceFalloff = -0.415
+  
 end
 
 
@@ -218,18 +224,6 @@ function PlayerCar:update(dt)
   
   
   -- Cornering
-  -- Scale steering angle based on speed
-  -- TODO: Scale based on maximum cornering force.
-  --       Set max such that peak force can be reached in the direction from facing to velocity vectors.
-  --       Direction of travel + angle of peak cornering force
-  --       Need to scale with speed as well?
-  local speedSteeringFactor = 0.1
-  local steeringAngle = self.steering * self.maxSteeringAngle / (speedSteeringFactor * math.abs(forwardSpeed) + 1)
-  
-  ------ DEBUG
-  d0 = steeringAngle * 180/math.pi
-  
-  -- Compute cornering forces
   local wheelsCenterDist = self.wheelbase / 2
   local wheelRelativeSpeed = self.body:getAngularVelocity() * wheelsCenterDist
   
@@ -239,6 +233,15 @@ function PlayerCar:update(dt)
   local frontSideSlip = math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))
   local rearSideSlip = math.atan2(rearWheelLatSpeed, math.abs(forwardSpeed))
   
+  -- Scale steering such that peak cornering force can be reached
+  local scaledMaxSteeringAngle = math.abs(math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))) + self.idealSideSlipAngle
+  if scaledMaxSteeringAngle > self.maxSteeringAngle then scaledMaxSteeringAngle = self.maxSteeringAngle end
+  
+  local steeringAngle = self.steering * scaledMaxSteeringAngle
+  
+  ------ DEBUG
+  d0 = steeringAngle * 180/math.pi
+  
   if forwardSpeed > 0 then
     frontSideSlip = frontSideSlip - steeringAngle
   elseif forwardSpeed < 0 then
@@ -247,9 +250,6 @@ function PlayerCar:update(dt)
   
   local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
-  
-  ------ Drift test
-  rearCorneringForce = rearCorneringForce * 0.95
   
   -- Apply forces at offset to get torques
   local frontCorneringForceX = frontCorneringForce*uy
@@ -388,16 +388,14 @@ end
 function PlayerCar:computeTractionForce(slipRatio, tireLoad, tireMu)
   
   local loadFactor = 0
-  local peakGripRatio = 0.054
-  local gripFalloff = -0.009
   
-  if slipRatio < -peakGripRatio then
-    loadFactor = (gripFalloff * slipRatio) - 1
+  if slipRatio < -self.idealSlipRatio then
+    loadFactor = (self.tractionForceFalloff * slipRatio) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif slipRatio <= peakGripRatio then
-     loadFactor = slipRatio / peakGripRatio
+  elseif slipRatio <= self.idealSlipRatio then
+     loadFactor = slipRatio / self.idealSlipRatio
   else
-    loadFactor = (gripFalloff * slipRatio) + 1
+    loadFactor = (self.tractionForceFalloff * slipRatio) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
@@ -418,16 +416,14 @@ end
 function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad, tireMu)
   
   local loadFactor = 0
-  local peakGripAngle = 0.0413
-  local gripFalloff = -0.415
   
-  if sideSlipAngle < -peakGripAngle then
-    loadFactor = (gripFalloff * sideSlipAngle) - 1
+  if sideSlipAngle < -self.idealSideSlipAngle then
+    loadFactor = (self.corneringForceFalloff * sideSlipAngle) - 1
     if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif sideSlipAngle <= peakGripAngle then
-     loadFactor = sideSlipAngle / peakGripAngle
+  elseif sideSlipAngle <= self.idealSideSlipAngle then
+     loadFactor = sideSlipAngle / self.idealSideSlipAngle
   else
-    loadFactor = (gripFalloff * sideSlipAngle) + 1
+    loadFactor = (self.corneringForceFalloff * sideSlipAngle) + 1
     if loadFactor < 0.5 then loadFactor = 0.5 end
   end
   
