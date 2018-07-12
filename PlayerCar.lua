@@ -251,20 +251,10 @@ function PlayerCar:update(dt)
   local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
   
-  -- Apply forces at offset to get torques
-  local frontCorneringForceX = frontCorneringForce*uy
-  local frontCorneringForceY = frontCorneringForce*-ux
-  local rearCorneringForceX = rearCorneringForce*uy
-  local rearCorneringForceY = rearCorneringForce*-ux
+  local corneringForceX = frontCorneringForce*uy + rearCorneringForce*uy
+  local corneringForceY = frontCorneringForce*-ux + rearCorneringForce*-ux
   
-  ------ DEBUG
-  d1 = frontSideSlip * 180/math.pi
-  d2 = rearSideSlip * 180/math.pi
-  d3 = frontCorneringForce
-  d4 = rearCorneringForce
-  
-  self.body:applyForce(frontCorneringForceX, frontCorneringForceY)--, ux*wheelsCenterDist, uy*wheelsCenterDist)
-  self.body:applyForce(rearCorneringForceX, rearCorneringForceY)--, -ux*wheelsCenterDist, -uy*wheelsCenterDist)
+  self.body:applyForce(corneringForceX, corneringForceY)
   
   self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
   self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
@@ -280,63 +270,6 @@ function PlayerCar:draw()
   -- Display car
   love.graphics.setColor(255, 255, 255)
   self.image:draw(self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle())
-  
-  -- Basic information
-  love.graphics.setColor(0, 0, 0)
-  love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
-  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f/% 3.1f", self.throttle, self.brake, self.steering, d0), 20, 35)
-  love.graphics.print(string.format("Speed: %.1f mph", 2.237 * self:getForwardSpeed()), 20, 50)
-  
-  -- Current gear
-  local gearString = ""
-  if self.gearShiftDelay <= 0 then
-    if self.gear == 0 then
-      gearString = "R"
-    else
-      gearString = tostring(self.gear)
-    end
-  else
-    local gearChangeProgress = math.floor(10 * (self.gearShiftTime - self.gearShiftDelay) / self.gearShiftTime)
-    for i = 1, gearChangeProgress do gearString = gearString .. "-" end
-    gearString = gearString .. "|"
-    for i = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
-  end
-  
-  love.graphics.print(string.format("Gear: %s", gearString), 120, 65)
-  
-  -- RPM
-  local rpmString = tostring(math.floor(self.rpm))
-  if self.redlineRpm - self.rpm < 100 then
-    rpmString = rpmString .. " ***"
-  elseif self.redlineRpm - self.rpm < 300 then
-    rpmString = rpmString .. " **"
-  elseif self.redlineRpm - self.rpm < 500 then
-    rpmString = rpmString .. " *"
-  end
-  love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
-  
-  ------ DEBUG
-  love.graphics.print(string.format("x, y: %.1f, %.1f", self.body:getX(), self.body:getY()), 20, 80)
-  
-  love.graphics.print(string.format("fss: % 2.1f", d1), 20, 95)
-  love.graphics.print(string.format("rss: % 2.1f", d2), 20, 110)
-  
-  love.graphics.print(string.format("fcf: % .1f", d3/1000), 20, 125)
-  love.graphics.print(string.format("rcf: % .1f", d4/1000), 20, 140)
-  
-  -- Facing and velocity vectors
-  love.graphics.setColor(0, 0, 255)
-  love.graphics.line( self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr,
-    self.body:getX()*pxPerMtr + 40*math.cos(self.body:getAngle()), self.body:getY()*pxPerMtr + 40*math.sin(self.body:getAngle()) )
-  
-  if math.abs(self:getSpeed()) > 0 then
-    
-    love.graphics.setColor(255, 0, 0)
-    local vx, vy = self.body:getLinearVelocity()
-    love.graphics.line( self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr,
-      self.body:getX()*pxPerMtr + 40*vx/self:getSpeed(), self.body:getY()*pxPerMtr + 40*vy/self:getSpeed() )
-    
-  end
   
 end
 
