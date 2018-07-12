@@ -5,6 +5,7 @@
 function love.load()
   
   Object = require "lib/classic"
+  require "lib/gamera/gamera"
   require "PlayerCar"
   require "Sprite"
   
@@ -68,22 +69,45 @@ end
 --]]
 function love.draw()
   
-  -- Move camera
-  local cameraAngle = -car.body:getAngle() - math.pi/2
-  local cameraOffsetX = (-car.body:getX() * pxPerMtr) - 0 --love.graphics.getHeight()/2
-  local cameraOffsetY = (-car.body:getY() * pxPerMtr) - 0 --love.graphics.getWidth()/2
+  love.graphics.push()
   
-  --love.graphics.translate(cameraOffsetX, cameraOffsetY)
-  --love.graphics.rotate(cameraAngle)
+  local cameraX = car.body:getX()*pxPerMtr - love.graphics.getWidth()/2
+  local cameraY = car.body:getY()*pxPerMtr - love.graphics.getHeight()/2
+  local cameraAngle = car.body:getAngle() - math.pi/2
   
+  love.graphics.translate(-cameraX, -cameraY)
+  --love.graphics.rotate(-cameraAngle)
   
   -- Car
-  car:draw()
+  love.graphics.setColor(255, 255, 255)
+  car.image:draw(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr, car.body:getAngle())
+  
+  -- Facing and velocity vectors
+  love.graphics.setColor(0, 0, 255)
+  love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
+    car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
+  
+  if math.abs(car:getSpeed()) > 0 then
+    
+    love.graphics.setColor(255, 0, 0)
+    local vx, vy = car.body:getLinearVelocity()
+    love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
+      car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
+    
+  end
+  
+  -- Walls
+  love.graphics.setColor(255, 255, 255)
+  for k, wall in ipairs(walls) do
+    wall.image:draw(wall.body:getX()*pxPerMtr, wall.body:getY()*pxPerMtr, wall.body:getAngle())
+  end
+  
+  love.graphics.pop()
   
   -- Car info
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
-  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f/% 3.1f", car.throttle, car.brake, car.steering, d0), 20, 35)
+  love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f", car.throttle, car.brake, car.steering), 20, 35)
   love.graphics.print(string.format("Speed: %.1f mph", 2.237 * car:getForwardSpeed()), 20, 50)
   
   -- Current gear
@@ -114,27 +138,6 @@ function love.draw()
   end
   love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
-  ------ DEBUG
   love.graphics.print(string.format("x, y: %.1f, %.1f", car.body:getX(), car.body:getY()), 20, 80)
-  
-  -- Facing and velocity vectors
-  love.graphics.setColor(0, 0, 255)
-  love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
-    car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
-  
-  if math.abs(car:getSpeed()) > 0 then
-    
-    love.graphics.setColor(255, 0, 0)
-    local vx, vy = car.body:getLinearVelocity()
-    love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
-      car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
-    
-  end
-  
-  -- Walls
-  love.graphics.setColor(255, 255, 255)
-  for k, wall in ipairs(walls) do
-    wall.image:draw(wall.body:getX() * pxPerMtr, wall.body:getY() * pxPerMtr, wall.body:getAngle())
-  end
   
 end

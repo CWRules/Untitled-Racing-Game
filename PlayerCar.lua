@@ -4,7 +4,7 @@
 --]]
 PlayerCar = Object:extend()
 ------DEBUG
-require("mobdebug").start()
+--require("mobdebug").start()
 
 --[[ PlayerCar:new(x, y)
   PlayerCar constructor.
@@ -105,9 +105,6 @@ end
 function PlayerCar:update(dt)
   
   self:processInputs(dt)
-  
-  ------ DEBUG
-  d0, d1, d2, d3, d4, d5, d6 = 0, 0, 0, 0, 0, 0, 0
   
   -- Frequently accessed values
   local ux = math.cos(self.body:getAngle())
@@ -239,9 +236,6 @@ function PlayerCar:update(dt)
   
   local steeringAngle = self.steering * scaledMaxSteeringAngle
   
-  ------ DEBUG
-  d0 = steeringAngle * 180/math.pi
-  
   if forwardSpeed > 0 then
     frontSideSlip = frontSideSlip - steeringAngle
   elseif forwardSpeed < 0 then
@@ -258,18 +252,6 @@ function PlayerCar:update(dt)
   
   self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
   self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
-  
-end
-
-
---[[ PlayerCar:draw()
-  Draws the car on screen. Currently also displays information about the car, but this will probably be moved eventually.
---]]
-function PlayerCar:draw()
-  
-  -- Display car
-  love.graphics.setColor(255, 255, 255)
-  self.image:draw(self.body:getX() * pxPerMtr, self.body:getY() * pxPerMtr, self.body:getAngle())
   
 end
 
