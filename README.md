@@ -1,6 +1,6 @@
-# Wangan-Racer
+# Untitled-Racing-Game
 
-Curently developing a sandbox for tuning car physics engine.
+Curently developing a sandbox for car physics engine.
 
 
 Controls:
