@@ -1,19 +1,21 @@
 
+Object = require "lib/classic"
+Gamera = require "lib/gamera"
+require "PlayerCar"
+require "Sprite"
+  
 --[[ love.load()
   LOVE initialization function. Run once at program start.
 --]]
 function love.load()
-  
-  Object = require "lib/classic"
-  require "lib/gamera/gamera"
-  require "PlayerCar"
-  require "Sprite"
   
   -- Set up window
   love.graphics.setBackgroundColor(255, 255, 255)
   pxPerMtr = 10
   maxX = love.graphics.getWidth() / pxPerMtr
   maxY = love.graphics.getHeight() / pxPerMtr
+  
+  camera = Gamera.new(-10000, -10000, 20000, 20000)
   
   -- Fonts
   fontCourier = love.graphics.newFont("cour.ttf", 12)
@@ -61,6 +63,9 @@ function love.update(dt)
   world:update(dt)
   car:update(dt)
   
+  camera:setPosition(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr)
+  camera:setAngle(car.body:getAngle() + math.pi/2)
+  
 end
 
 
@@ -69,40 +74,35 @@ end
 --]]
 function love.draw()
   
-  love.graphics.push()
-  
-  local cameraX = car.body:getX()*pxPerMtr - love.graphics.getWidth()/2
-  local cameraY = car.body:getY()*pxPerMtr - love.graphics.getHeight()/2
-  local cameraAngle = car.body:getAngle() - math.pi/2
-  
-  love.graphics.translate(-cameraX, -cameraY)
-  --love.graphics.rotate(-cameraAngle)
-  
-  -- Car
-  love.graphics.setColor(255, 255, 255)
-  car.image:draw(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr, car.body:getAngle())
-  
-  -- Facing and velocity vectors
-  love.graphics.setColor(0, 0, 255)
-  love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
-    car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
-  
-  if math.abs(car:getSpeed()) > 0 then
+  camera:draw(function(l,t,w,h)
     
-    love.graphics.setColor(255, 0, 0)
-    local vx, vy = car.body:getLinearVelocity()
+    drawBackground(l,t,w,h)
+  
+    -- Car
+    love.graphics.setColor(255, 255, 255)
+    car.image:draw(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr, car.body:getAngle())
+  
+    -- Facing and velocity vectors
+    love.graphics.setColor(0, 0, 255)
     love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
-      car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
+      car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
+  
+    if math.abs(car:getSpeed()) > 0 then
     
-  end
+      love.graphics.setColor(255, 0, 0)
+      local vx, vy = car.body:getLinearVelocity()
+      love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
+        car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
+    
+    end
   
-  -- Walls
-  love.graphics.setColor(255, 255, 255)
-  for k, wall in ipairs(walls) do
-    wall.image:draw(wall.body:getX()*pxPerMtr, wall.body:getY()*pxPerMtr, wall.body:getAngle())
-  end
+    -- Walls
+    love.graphics.setColor(255, 255, 255)
+    for k, wall in ipairs(walls) do
+      wall.image:draw(wall.body:getX()*pxPerMtr, wall.body:getY()*pxPerMtr, wall.body:getAngle())
+    end
   
-  love.graphics.pop()
+  end)
   
   -- Car info
   love.graphics.setColor(0, 0, 0)
@@ -140,4 +140,31 @@ function love.draw()
   
   love.graphics.print(string.format("x, y: %.1f, %.1f", car.body:getX(), car.body:getY()), 20, 80)
   
+end
+
+
+--[[ drawBackground()
+  Function to draw checkered background pattern adapted from the gamera demo.
+--]]
+function drawBackground(cl, ct, cw, ch)
+  local rows = 100
+  local columns = 100
+  local w = 10000 / columns
+  local h = 10000 / rows
+
+  local minX = math.max(math.floor(cl/w), 0)
+  local maxX = math.min(math.floor((cl+cw)/w), columns-1)
+  local minY = math.max(math.floor(ct/h), 0)
+  local maxY = math.min(math.floor((ct+ch)/h), rows-1)
+
+  for y=minY, maxY do
+    for x=minX, maxX do
+      if (x + y) % 2 == 0 then
+        love.graphics.setColor(155,155,155)
+      else
+        love.graphics.setColor(200,200,200)
+      end
+      love.graphics.rectangle("fill", x*w, y*h, w, h)
+    end
+  end
 end

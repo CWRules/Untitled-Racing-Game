@@ -3,8 +3,6 @@
   Class defining the functionality of the player-controlled car.
 --]]
 PlayerCar = Object:extend()
-------DEBUG
---require("mobdebug").start()
 
 --[[ PlayerCar:new(x, y)
   PlayerCar constructor.
