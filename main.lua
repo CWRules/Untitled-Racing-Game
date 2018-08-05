@@ -9,6 +9,9 @@ require "Sprite"
 --]]
 function love.load()
   
+  ------ DEBUG
+  require("mobdebug").start()
+  
   -- Set up window
   love.graphics.setBackgroundColor(255, 255, 255)
   pxPerMtr = 10
@@ -73,10 +76,9 @@ end
   LOVE graphics function. Run once each program cycle after update() finishes.
 --]]
 function love.draw()
-  
   camera:draw(function(l,t,w,h)
     
-    drawBackground(l,t,w,h)
+    drawFloorPattern(l,t,w,h)
   
     -- Car
     love.graphics.setColor(255, 255, 255)
@@ -98,7 +100,7 @@ function love.draw()
   
     -- Walls
     love.graphics.setColor(255, 255, 255)
-    for k, wall in ipairs(walls) do
+    for _, wall in ipairs(walls) do
       wall.image:draw(wall.body:getX()*pxPerMtr, wall.body:getY()*pxPerMtr, wall.body:getAngle())
     end
   
@@ -120,9 +122,9 @@ function love.draw()
     end
   else
     local gearChangeProgress = math.floor(10 * (car.gearShiftTime - car.gearShiftDelay) / car.gearShiftTime)
-    for i = 1, gearChangeProgress do gearString = gearString .. "-" end
+    for _ = 1, gearChangeProgress do gearString = gearString .. "-" end
     gearString = gearString .. "|"
-    for i = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
+    for _ = 1, 9 - gearChangeProgress do gearString = gearString .. "-" end
   end
   
   love.graphics.print(string.format("Gear: %s", gearString), 120, 65)
@@ -143,18 +145,18 @@ function love.draw()
 end
 
 
---[[ drawBackground()
+--[[ drawFloorPattern()
   Function to draw checkered background pattern adapted from the gamera demo.
 --]]
-function drawBackground(cl, ct, cw, ch)
+function drawFloorPattern(cl, ct, cw, ch)
   local rows = 100
   local columns = 100
   local w = 10000 / columns
   local h = 10000 / rows
 
-  local minX = math.max(math.floor(cl/w), 0)
+  local minX = math.max(math.floor(cl/w), -columns)
   local maxX = math.min(math.floor((cl+cw)/w), columns-1)
-  local minY = math.max(math.floor(ct/h), 0)
+  local minY = math.max(math.floor(ct/h), -rows)
   local maxY = math.min(math.floor((ct+ch)/h), rows-1)
 
   for y=minY, maxY do
