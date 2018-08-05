@@ -81,17 +81,17 @@ function love.draw()
     drawFloorPattern(l,t,w,h)
   
     -- Car
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
     car.image:draw(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr, car.body:getAngle())
   
     -- Facing and velocity vectors
-    love.graphics.setColor(0, 0, 255)
+    love.graphics.setColor(0, 0, 1)
     love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
       car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
   
     if math.abs(car:getSpeed()) > 0 then
     
-      love.graphics.setColor(255, 0, 0)
+      love.graphics.setColor(1, 0, 0)
       local vx, vy = car.body:getLinearVelocity()
       love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
         car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
@@ -99,7 +99,7 @@ function love.draw()
     end
   
     -- Walls
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
     for _, wall in ipairs(walls) do
       wall.image:draw(wall.body:getX()*pxPerMtr, wall.body:getY()*pxPerMtr, wall.body:getAngle())
     end
@@ -162,9 +162,9 @@ function drawFloorPattern(cl, ct, cw, ch)
   for y=minY, maxY do
     for x=minX, maxX do
       if (x + y) % 2 == 0 then
-        love.graphics.setColor(155,155,155)
+        love.graphics.setColor(0.6, 0.6, 0.6)
       else
-        love.graphics.setColor(200,200,200)
+        love.graphics.setColor(0.8, 0.8, 0.8)
       end
       love.graphics.rectangle("fill", x*w, y*h, w, h)
     end
