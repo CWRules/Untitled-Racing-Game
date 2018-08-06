@@ -66,7 +66,11 @@ function love.update(dt)
   world:update(dt)
   car:update(dt)
   
-  camera:setPosition(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr)
+  local ux, uy = car:getUnitFacingVector()
+  local cameraX = car.body:getX() + (maxY/3)*ux
+  local cameraY = car.body:getY() + (maxY/3)*uy
+  
+  camera:setPosition(cameraX * pxPerMtr, cameraY * pxPerMtr)
   camera:setAngle(car.body:getAngle() + math.pi/2)
   
 end
@@ -149,10 +153,12 @@ end
   Function to draw checkered background pattern adapted from the gamera demo.
 --]]
 function drawFloorPattern(cl, ct, cw, ch)
+  
+  local _, _, ww, wh = camera:getWorld()
   local rows = 1000
   local columns = 1000
-  local w = 100000 / columns
-  local h = 100000 / rows
+  local w = ww / columns
+  local h = wh / rows
 
   local minX = math.max(math.floor(cl/w), -columns)
   local maxX = math.min(math.floor((cl+cw)/w), columns-1)

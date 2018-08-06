@@ -105,15 +105,13 @@ function PlayerCar:update(dt)
   self:processInputs(dt)
   
   -- Frequently accessed values
-  local ux = math.cos(self.body:getAngle())
-  local uy = math.sin(self.body:getAngle())
+  local ux, uy = self:getUnitFacingVector()
   local vx, vy = self.body:getLinearVelocity()
-  local speed = self:getSpeed()
   local forwardSpeed = self:getForwardSpeed()
   local lateralSpeed = self:getLateralSpeed()
   
   -- Prevent zero crossing errors
-  if math.abs(speed) < self.speedZeroThreshold and self.throttle == 0 then
+  if math.abs(self:getSpeed()) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
     self.body:setAngularVelocity(0)
     self.frontWheelAngV = 0
@@ -198,8 +196,8 @@ function PlayerCar:update(dt)
   
   
   -- Drag and rolling resistance
-  local dragForceX = -self.dragCoeff * vx * speed
-  local dragForceY = -self.dragCoeff * vy * speed
+  local dragForceX = -self.dragCoeff * vx * self:getSpeed()
+  local dragForceY = -self.dragCoeff * vy * self:getSpeed()
   
   local rollResForce = 0
   if forwardSpeed > 0 then
@@ -470,5 +468,18 @@ function PlayerCar:getLateralSpeed()
   local theta = (math.pi / 2) + self.body:getAngle() - vAngle
   
   return math.cos(theta) * math.sqrt(vx^2 + vy^2)
+  
+end
+
+
+--[[ PlayerCar:getUnitFacingVector()
+  Returns the unit vector corrsponding to the car's current direction of facing.
+--]]
+function PlayerCar:getUnitFacingVector()
+  
+  local ux = math.cos(self.body:getAngle())
+  local uy = math.sin(self.body:getAngle())
+  
+  return ux, uy
   
 end
