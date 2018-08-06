@@ -18,7 +18,7 @@ function love.load()
   maxX = love.graphics.getWidth() / pxPerMtr
   maxY = love.graphics.getHeight() / pxPerMtr
   
-  camera = Gamera.new(-10000, -10000, 20000, 20000)
+  camera = Gamera.new(-100000, -100000, 200000, 200000)
   
   -- Fonts
   fontCourier = love.graphics.newFont("cour.ttf", 12)
@@ -31,7 +31,7 @@ function love.load()
   gravity = 9.81
   
   -- Declare car
-  car = PlayerCar(5, maxY - 5)
+  car = PlayerCar(0, 0)
   
   -- Create walls
   walls = {}
@@ -46,11 +46,11 @@ function love.load()
     walls[i].fixture = love.physics.newFixture(walls[i].body, walls[i].shape)
   end
   
-  walls[1].body:setPosition(maxX/2, 0)
+  walls[1].body:setPosition(0, 50)
   
-  walls[2].body:setPosition(maxX/2, maxY)
+  walls[2].body:setPosition(0, -50)
   
-  walls[3].body:setPosition(0, maxY/2)
+  walls[3].body:setPosition(-50, 0)
   walls[3].body:setAngle(math.pi/2)
   
 end
@@ -149,10 +149,10 @@ end
   Function to draw checkered background pattern adapted from the gamera demo.
 --]]
 function drawFloorPattern(cl, ct, cw, ch)
-  local rows = 100
-  local columns = 100
-  local w = 10000 / columns
-  local h = 10000 / rows
+  local rows = 1000
+  local columns = 1000
+  local w = 100000 / columns
+  local h = 100000 / rows
 
   local minX = math.max(math.floor(cl/w), -columns)
   local maxX = math.min(math.floor((cl+cw)/w), columns-1)

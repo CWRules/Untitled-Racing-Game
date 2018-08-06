@@ -431,7 +431,7 @@ function PlayerCar:reset()
   
   self.body:setAngle(0)
   self.body:setAngularVelocity(0)
-  self.body:setPosition(5, 55)
+  self.body:setPosition(0, 0)
   self.body:setLinearVelocity(0, 0)
   
 end
