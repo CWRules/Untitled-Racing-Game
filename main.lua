@@ -114,7 +114,8 @@ function love.draw()
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
   love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f", car.throttle, car.brake, car.steering), 20, 35)
-  love.graphics.print(string.format("Speed: %.1f mph", 2.237 * car:getForwardSpeed()), 20, 50)
+  local ForwardSpeed = car:getRelativeSpeed()
+  love.graphics.print(string.format("Speed: %.1f mph", 2.237 * ForwardSpeed), 20, 50)
   
   -- Current gear
   local gearString = ""

@@ -107,8 +107,7 @@ function PlayerCar:update(dt)
   -- Frequently accessed values
   local ux, uy = self:getUnitFacingVector()
   local vx, vy = self.body:getLinearVelocity()
-  local forwardSpeed = self:getForwardSpeed()
-  local lateralSpeed = self:getLateralSpeed()
+  local forwardSpeed, lateralSpeed = self:getRelativeSpeed()
   
   -- Prevent zero crossing errors
   if math.abs(self:getSpeed()) < self.speedZeroThreshold and self.throttle == 0 then
@@ -446,28 +445,19 @@ function PlayerCar:getSpeed()
 end
 
 
---[[ PlayerCar:getForwardSpeed()
-  Returns the speed of the car in the direction it is currently facing.
+--[[ PlayerCar:getRelativeSpeed()
+  Returns the speed of the car relative to its own facing, in the forward and lateral directions.
 --]]
-function PlayerCar:getForwardSpeed()
-  
-  local vx, vy = self.body:getLinearVelocity()
-  local vAngle = math.atan2(vy, vx)
-  return math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
-  
-end
-
-
---[[ PlayerCar:getLateralSpeed()
-  Returns the speed of the car perpendicular to the direction it is currently facing.
---]]
-function PlayerCar:getLateralSpeed()
+function PlayerCar:getRelativeSpeed()
   
   local vx, vy = self.body:getLinearVelocity()
   local vAngle = math.atan2(vy, vx)
   local theta = (math.pi / 2) + self.body:getAngle() - vAngle
   
-  return math.cos(theta) * math.sqrt(vx^2 + vy^2)
+  local vForward = math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
+  local vLateral = math.cos(theta) * math.sqrt(vx^2 + vy^2)
+  
+  return vForward, vLateral
   
 end
 
