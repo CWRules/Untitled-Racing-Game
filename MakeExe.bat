@@ -4,6 +4,7 @@ set LOVE="C:\Program Files\LOVE\love.exe"
 for %%I in (.) do set NAME=%%~nxI
 
 %ZIP% a -tzip %NAME%.love images\* lib\* conf.lua cour.ttf main.lua PlayerCar.lua Sprite.lua
-
 copy /b %LOVE%+%NAME%.love %NAME%.exe
-del %NAME%.love
+%ZIP% a -tzip %NAME%.zip %NAME%.exe .\DLLs\*
+
+del %NAME%.love %NAME%.exe
