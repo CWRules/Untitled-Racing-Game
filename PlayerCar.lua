@@ -1,4 +1,6 @@
 
+require "Tire"
+
 --[[ PlayerCar
   Class defining the functionality of the player-controlled car.
 --]]
@@ -49,8 +51,8 @@ function PlayerCar:new(x, y)
   self.rearWheelDrive = true
   
   -- Compute angular inertia of drivetrain + wheels
-  local wheelMass = 20
-  local twoWheelsAngInertia = wheelMass * self.wheelRadius^2
+  local wheelMass = 10
+  local twoWheelsAngInertia = 2*wheelMass * self.wheelRadius^2
   local drivelineAngInertia = 1 -- VERY rough estimate
   self.frontAngInertia = twoWheelsAngInertia
   self.rearAngInertia = twoWheelsAngInertia
