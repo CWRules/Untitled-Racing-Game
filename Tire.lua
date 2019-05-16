@@ -21,16 +21,18 @@ function Tire:new(x, y, mass, radius, width)
   self.height = radius*2
   self.angInertia = mass * radius^2
   
+  -- Set up physics
   self.body = love.physics.newBody(world, x, y, "dynamic")
   self.shape = love.physics.newRectangleShape(self.height, self.width)
   self.fixture = love.physics.newFixture(self.body, self.shape, 0)
   
   -- Create image
-  self.image = love.graphics.newCanvas(self.width*pxPerMtr, self.height*pxPerMtr)
-  love.graphics.setCanvas(self.image)
-  love.graphics.setColor(0, 1, 0)
-  love.graphics.rectangle('fill', 0, 0, self.width*pxPerMtr, self.height*pxPerMtr)
+  local canvas = love.graphics.newCanvas(self.width*pxPerMtr, self.height*pxPerMtr)
+  love.graphics.setCanvas(canvas)
+    love.graphics.setColor(0, 1, 0)
+    love.graphics.rectangle("fill", 0, 0, self.width*pxPerMtr, self.height*pxPerMtr)
   love.graphics.setCanvas()
+  self.image = Sprite(canvas)
   
 end
 
@@ -42,9 +44,6 @@ end
 --]]
 function Tire:update(torque, dt)
   
-  -- Model tire as separate physics object to get position and velocity!
-  -- Connect with Revolute Joints
-  
   -- Compute slip ratio and sideslip angle
   -- Update angular velocity
   -- Compute lateral traction forces using Pacejka Magic Formula
@@ -53,11 +52,12 @@ function Tire:update(torque, dt)
 end
 
 
---[[ Tire:draw(dt)
+--[[ Tire:draw()
   Draws the tire in its current position.
 --]]
-function Tire:draw(dt)
+function Tire:draw()
   
-  love.graphics.draw(self.image, self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle(), 1, 1, self.image:getWidth() / 2, self.image:getHeight() / 2)
+  love.graphics.setColor(1, 1, 1)
+  self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())
   
 end

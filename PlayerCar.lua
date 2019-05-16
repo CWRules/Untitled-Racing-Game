@@ -267,10 +267,10 @@ function PlayerCar:update(dt)
 end
 
 
---[[ PlayerCar:draw(dt)
+--[[ PlayerCar:draw()
   Draws the car in its current position.
 --]]
-function PlayerCar:draw(dt)
+function PlayerCar:draw()
   
   love.graphics.setColor(1, 1, 1)
   self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())

@@ -4,18 +4,25 @@
 --]]
 Sprite = Object:extend()
 
---[[ Sprite:new(imagePath)
+--[[ Sprite:new(target)
   Sprite constructor.
   
-  imagePath: Path to the image to create the Sprite with.
+  target: Overloaded parameter.
+    A) Path to the image to create the Sprite with.
+    B) Drawable object to create the Sprite with.
 --]]
-function Sprite:new(imagePath)
+function Sprite:new(target)
   
-  self.image = love.graphics.newImage(imagePath)
+  if type(target) == "string" then
+    self.image = love.graphics.newImage(target)
+  else
+    self.image = target
+  end
+  
   self.width = self.image:getWidth()
   self.height = self.image:getHeight()
-  self.originX = self.image:getWidth() / 2
-  self.originY = self.image:getHeight() / 2
+  self.originX = self.width / 2
+  self.originY = self.height / 2
   
 end
 
