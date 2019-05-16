@@ -10,7 +10,7 @@ require "Sprite"
 function love.load()
   
   ------ DEBUG
-  --require("mobdebug").start()
+  require("mobdebug").start()
   
   -- Set up window
   love.graphics.setBackgroundColor(255, 255, 255)

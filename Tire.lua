@@ -25,19 +25,12 @@ function Tire:new(x, y, mass, radius, width)
   self.shape = love.physics.newRectangleShape(self.height, self.width)
   self.fixture = love.physics.newFixture(self.body, self.shape, 0)
   
-end
-
-
---[[ Tire:draw(dt)
-  Draws the tire in its current position.
---]]
-function Tire:draw(dt)
-  
+  -- Create image
+  self.image = love.graphics.newCanvas(self.width*pxPerMtr, self.height*pxPerMtr)
+  love.graphics.setCanvas(self.image)
   love.graphics.setColor(0, 1, 0)
-  love.graphics.push()
-  love.graphics.rotate(self.body:getAngle())
-  love.graphics.rectangle("fill", (self.body:getX() - self.width/2)*pxPerMtr, (self.body:getY() - self.height/2)*pxPerMtr, self.width*pxPerMtr, self.height*pxPerMtr)
-  love.graphics.pop()
+  love.graphics.rectangle('fill', 0, 0, self.width*pxPerMtr, self.height*pxPerMtr)
+  love.graphics.setCanvas()
   
 end
 
@@ -56,5 +49,15 @@ function Tire:update(torque, dt)
   -- Update angular velocity
   -- Compute lateral traction forces using Pacejka Magic Formula
   -- Deal with zero-crossing
+  
+end
+
+
+--[[ Tire:draw(dt)
+  Draws the tire in its current position.
+--]]
+function Tire:draw(dt)
+  
+  love.graphics.draw(self.image, self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle(), 1, 1, self.image:getWidth() / 2, self.image:getHeight() / 2)
   
 end

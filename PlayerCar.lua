@@ -97,23 +97,10 @@ function PlayerCar:new(x, y)
   
   
   -- Set up tires
-  self.frontTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
-  self.rearTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
-  self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
-  self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
-  
-end
-
-
---[[ PlayerCar:draw(dt)
-  Draws the car in its current position.
---]]
-function PlayerCar:draw(dt)
-  
-  love.graphics.setColor(1, 1, 1)
-  self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())
-  self.frontTire:draw()
-  self.rearTire:draw()
+  self.frontTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
+  self.rearTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
+  self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
+  self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
   
 end
 
@@ -270,6 +257,25 @@ function PlayerCar:update(dt)
   
   self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
   self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
+  
+  
+  
+  -- Tires
+  self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
+  self.rearTire.body:setAngle(self.body:getAngle())
+  
+end
+
+
+--[[ PlayerCar:draw(dt)
+  Draws the car in its current position.
+--]]
+function PlayerCar:draw(dt)
+  
+  love.graphics.setColor(1, 1, 1)
+  self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())
+  self.frontTire:draw()
+  self.rearTire:draw()
   
 end
 
