@@ -250,15 +250,11 @@ function PlayerCar:update(dt)
   local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
   local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
   
-  local corneringForceX = frontCorneringForce*uy + rearCorneringForce*uy
-  local corneringForceY = frontCorneringForce*-ux + rearCorneringForce*-ux
-  
-  self.body:applyForce(corneringForceX, corneringForceY)
-  
-  self.body:applyTorque(-frontCorneringForce * wheelsCenterDist)
-  self.body:applyTorque(rearCorneringForce * wheelsCenterDist)
   
   
+  -- Apply cornering force to tires until tires properly implemented
+  self.frontTire.body:applyForce(frontCorneringForce*uy, frontCorneringForce*-ux)
+  self.rearTire.body:applyForce(rearCorneringForce*uy, rearCorneringForce*-ux)
   
   -- Tires
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
