@@ -85,8 +85,7 @@ function love.draw()
     drawFloorPattern(l,t,w,h)
   
     -- Car
-    love.graphics.setColor(1, 1, 1)
-    car.image:draw(car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr, car.body:getAngle())
+    car:draw()
   
     -- Facing and velocity vectors
     love.graphics.setColor(0, 0, 1)

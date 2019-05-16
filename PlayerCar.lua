@@ -94,6 +94,27 @@ function PlayerCar:new(x, y)
   self.idealSideSlipAngle = 0.0413
   self.corneringForceFalloff = -0.415
   
+  
+  
+  -- Set up tires
+  self.frontTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
+  self.rearTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
+  self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
+  self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
+  
+end
+
+
+--[[ PlayerCar:draw(dt)
+  Draws the car in its current position.
+--]]
+function PlayerCar:draw(dt)
+  
+  love.graphics.setColor(1, 1, 1)
+  self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())
+  self.frontTire:draw()
+  self.rearTire:draw()
+  
 end
 
 
