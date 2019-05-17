@@ -59,14 +59,16 @@ end
   Updates state of tire for current program cycle.
   
   wheelLoad: Vertical load on the tire.
-  torque: Total torque applied to the wheel.
+  accelTorque: Torque applied to the wheel from acceleration.
+  brakeTorque: Torque applied to the wheel from braking.
   dt: Time in seconds since last program cycle.
 --]]
-function Tire:update(wheelLoad, torque, dt)
-    
-  -- Compute slip ratio and sideslip angle
+function Tire:update(wheelLoad, accelTorque, brakeTorque, dt)
+  
+  local ux, uy = PhysicsHelper.getUnitFacingVector(self.body)
   local forwardSpeed, lateralSpeed = PhysicsHelper.getRelativeSpeed(self.body)
   
+  -- Compute slip ratio and sideslip angle
   local slipRatio
   if forwardSpeed ~= 0 then
     slipRatio = (self.radius * self.angVelocity - forwardSpeed) / math.abs(forwardSpeed)
@@ -80,9 +82,17 @@ function Tire:update(wheelLoad, torque, dt)
   local longForce = PhysicsHelper.pacejka(wheelLoad, slipRatio, self.longStiffness, self.longShape, self.friction, self.longCurvature)
   local latForce = PhysicsHelper.pacejka(wheelLoad, sideSlip, self.latStiffness, self.latShape, self.friction, self.latCurvature)
   
-  -- Apply traction forces (remove from PlayerCar)
   -- Update angular velocity
-  -- Deal with zero-crossing
+  local wheelTorque = accelTorque + brakeTorque - (longForce * self.radius)
+  self.angVelocity = self.angVelocity + (wheelTorque * dt / self.angInertia)
+  
+  -- Apply forces
+  local tractionForceX = (longForce * ux) + (latForce * uy)
+  local tractionForceY = (longForce * uy) + (latForce * -ux)
+  ------self.body:applyForce(tractionForceX, tractionForceY)
+  
+  -- Apply traction forces (remove from PlayerCar)
+  -- Deal with zero-crossing (braking)
   
 end
 

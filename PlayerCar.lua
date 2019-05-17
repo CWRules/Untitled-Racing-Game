@@ -114,7 +114,6 @@ function PlayerCar:update(dt)
   
   self:processInputs(dt)
   
-  -- Frequently accessed values
   local ux, uy = PhysicsHelper.getUnitFacingVector(self.body)
   local vx, vy = self.body:getLinearVelocity()
   local forwardSpeed, lateralSpeed = PhysicsHelper.getRelativeSpeed(self.body)
@@ -260,8 +259,8 @@ function PlayerCar:update(dt)
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())
   
-  self.frontTire:update(frontWheelLoad, frontWheelTorque, dt)
-  self.rearTire:update(rearWheelLoad, rearWheelTorque, dt)
+  self.frontTire:update(frontWheelLoad, frontAccelTorque, frontBrakeTorque, dt)
+  self.rearTire:update(rearWheelLoad, rearAccelTorque, rearBrakeTorque, dt)
   
 end
 

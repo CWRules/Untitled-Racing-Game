@@ -15,7 +15,7 @@ function love.load()
   --require("mobdebug").start()
   
   -- Set up window
-  love.graphics.setBackgroundColor(255, 255, 255)
+  love.graphics.setBackgroundColor(1, 1, 1)
   pxPerMtr = 10
   maxX = love.graphics.getWidth() / pxPerMtr
   maxY = love.graphics.getHeight() / pxPerMtr
