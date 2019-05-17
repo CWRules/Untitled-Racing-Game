@@ -97,8 +97,8 @@ function PlayerCar:new(x, y)
   
   
   -- Set up tires
-  self.frontTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
-  self.rearTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6)
+  self.frontTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
+  self.rearTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
   self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
   self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
   
@@ -260,8 +260,8 @@ function PlayerCar:update(dt)
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())
   
-  self.frontTire:update(frontWheelTorque, dt)
-  self.rearTire:update(rearWheelTorque, dt)
+  self.frontTire:update(frontWheelLoad, frontWheelTorque, dt)
+  self.rearTire:update(rearWheelLoad, rearWheelTorque, dt)
   
 end
 
