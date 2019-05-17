@@ -6,7 +6,7 @@ require "Tire"
 --]]
 PlayerCar = Object:extend()
 
---[[ PlayerCar:new(x, y)
+--[[ PlayerCar:new
   PlayerCar constructor.
   
   x: X coordinate to initialize the car at.
@@ -105,7 +105,7 @@ function PlayerCar:new(x, y)
 end
 
 
---[[ PlayerCar:update(dt)
+--[[ PlayerCar:update
   Updates state of car for current program cycle.
   
   dt: Time in seconds since last program cycle.
@@ -115,12 +115,12 @@ function PlayerCar:update(dt)
   self:processInputs(dt)
   
   -- Frequently accessed values
-  local ux, uy = self:getUnitFacingVector()
+  local ux, uy = PhysicsHelper.getUnitFacingVector(self.body)
   local vx, vy = self.body:getLinearVelocity()
-  local forwardSpeed, lateralSpeed = self:getRelativeSpeed()
+  local forwardSpeed, lateralSpeed = PhysicsHelper.getRelativeSpeed(self.body)
   
   -- Prevent zero crossing errors
-  if math.abs(self:getSpeed()) < self.speedZeroThreshold and self.throttle == 0 then
+  if math.abs(PhysicsHelper.getSpeed(self.body)) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
     self.body:setAngularVelocity(0)
     self.frontWheelAngV = 0
@@ -205,8 +205,8 @@ function PlayerCar:update(dt)
   
   
   -- Drag and rolling resistance
-  local dragForceX = -self.dragCoeff * vx * self:getSpeed()
-  local dragForceY = -self.dragCoeff * vy * self:getSpeed()
+  local dragForceX = -self.dragCoeff * vx * PhysicsHelper.getSpeed(self.body)
+  local dragForceY = -self.dragCoeff * vy * PhysicsHelper.getSpeed(self.body)
   
   local rollResForce = 0
   if forwardSpeed > 0 then
@@ -260,10 +260,13 @@ function PlayerCar:update(dt)
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())
   
+  self.frontTire:update(frontWheelTorque, dt)
+  self.rearTire:update(rearWheelTorque, dt)
+  
 end
 
 
---[[ PlayerCar:draw()
+--[[ PlayerCar:draw
   Draws the car in its current position.
 --]]
 function PlayerCar:draw()
@@ -276,7 +279,7 @@ function PlayerCar:draw()
 end
 
 
---[[ PlayerCar:torqueCurveLookup(rpm)
+--[[ PlayerCar:torqueCurveLookup
   Returns the torque produced by the car's engine at a given RPM.
   
   rpm: RPM for which a torque value should be returned.
@@ -311,7 +314,7 @@ function PlayerCar:torqueCurveLookup(rpm)
 end
 
 
---[[ PlayerCar:computeTractionForce(slipRatio, load)
+--[[ PlayerCar:computeTractionForce
   Returns the traction force for a given slip ratio and wheel load.
   Traction force increases rapidly with magnitude of slip ratio up to a point,
   then drops off gradually.
@@ -339,7 +342,7 @@ function PlayerCar:computeTractionForce(slipRatio, tireLoad, tireMu)
 end
 
 
---[[ PlayerCar:computeCorneringForce(sideSlipAngle, load)
+--[[ PlayerCar:computeCorneringForce
   Returns the cornering force for a given sideslip angle and wheel load.
   Cornering force increases rapidly with magnitude of sideslip angle up to a point,
   then drops off gradually.
@@ -367,7 +370,7 @@ function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad, tireMu)
 end
 
 
---[[ PlayerCar:processInputs(dt)
+--[[ PlayerCar:processInputs
   Handles processing of player inputs.
   
   dt: Time in seconds since last program cycle.
@@ -435,7 +438,7 @@ function PlayerCar:processInputs(dt)
 end
 
 
---[[ PlayerCar:reset()
+--[[ PlayerCar:reset
   Resets the car back to default position and state.
 --]]
 function PlayerCar:reset()
@@ -455,46 +458,5 @@ function PlayerCar:reset()
   self.body:setAngularVelocity(0)
   self.body:setPosition(0, 0)
   self.body:setLinearVelocity(0, 0)
-  
-end
-
-
---[[ PlayerCar:getSpeed()
-  Returns the magnitude of the car's linear velocity.
---]]
-function PlayerCar:getSpeed()
-  
-  local vx, vy = self.body:getLinearVelocity()
-  return math.sqrt(vx^2 + vy^2)
-  
-end
-
-
---[[ PlayerCar:getRelativeSpeed()
-  Returns the speed of the car relative to its own facing, in the forward and lateral directions.
---]]
-function PlayerCar:getRelativeSpeed()
-  
-  local vx, vy = self.body:getLinearVelocity()
-  local vAngle = math.atan2(vy, vx)
-  local theta = (math.pi / 2) + self.body:getAngle() - vAngle
-  
-  local vForward = math.cos(vAngle - self.body:getAngle()) * math.sqrt(vx^2 + vy^2)
-  local vLateral = math.cos(theta) * math.sqrt(vx^2 + vy^2)
-  
-  return vForward, vLateral
-  
-end
-
-
---[[ PlayerCar:getUnitFacingVector()
-  Returns the unit vector corrsponding to the car's current direction of facing.
---]]
-function PlayerCar:getUnitFacingVector()
-  
-  local ux = math.cos(self.body:getAngle())
-  local uy = math.sin(self.body:getAngle())
-  
-  return ux, uy
   
 end

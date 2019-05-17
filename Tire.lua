@@ -4,7 +4,7 @@
 --]]
 Tire = Object:extend()
 
---[[ Tire:new(x, y)
+--[[ Tire:new
   Tire constructor.
   
   x: X coordinate to initialize the tire at.
@@ -15,11 +15,11 @@ Tire = Object:extend()
 --]]
 function Tire:new(x, y, mass, radius, width)
   
-  self.angVelocity = 0
   self.radius = radius
   self.width = width
   self.height = radius*2
   self.angInertia = mass * radius^2
+  self.angVelocity = 0
   
   -- Set up physics
   self.body = love.physics.newBody(world, x, y, "dynamic")
@@ -36,7 +36,7 @@ function Tire:new(x, y, mass, radius, width)
   
 end
 
---[[ Tire:update()
+--[[ Tire:update
   Updates state of tire for current program cycle.
   
   torque: Total torque applied to the wheel.
@@ -49,10 +49,15 @@ function Tire:update(torque, dt)
   -- Compute lateral traction forces using Pacejka Magic Formula
   -- Deal with zero-crossing
   
+  -- Slip ratio
+  --if forwardSpeed ~= 0 or self.frontWheelAngV ~= 0 then
+  --  frontSlipRatio = (self.wheelRadius * self.frontWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
+  --end
+  
 end
 
 
---[[ Tire:draw()
+--[[ Tire:draw
   Draws the tire in its current position.
 --]]
 function Tire:draw()

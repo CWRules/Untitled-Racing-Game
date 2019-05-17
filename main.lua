@@ -1,10 +1,12 @@
 
 Object = require "lib/classic"
 Gamera = require "lib/gamera"
+PhysicsHelper = require "PhysicsHelper"
+
 require "PlayerCar"
 require "Sprite"
   
---[[ love.load()
+--[[ love.load
   LOVE initialization function. Run once at program start.
 --]]
 function love.load()
@@ -56,7 +58,7 @@ function love.load()
 end
 
 
---[[ love.update()
+--[[ love.update
   LOVE update function. Run once each program cycle.
   
   dt: Time in seconds since last program cycle.
@@ -66,7 +68,7 @@ function love.update(dt)
   world:update(dt)
   car:update(dt)
   
-  local ux, uy = car:getUnitFacingVector()
+  local ux, uy = PhysicsHelper.getUnitFacingVector(car.body)
   local cameraX = car.body:getX() + (maxY/3)*ux
   local cameraY = car.body:getY() + (maxY/3)*uy
   
@@ -76,7 +78,7 @@ function love.update(dt)
 end
 
 
---[[ love.draw()
+--[[ love.draw
   LOVE graphics function. Run once each program cycle after update() finishes.
 --]]
 function love.draw()
@@ -92,12 +94,12 @@ function love.draw()
     love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
       car.body:getX()*pxPerMtr + 40*math.cos(car.body:getAngle()), car.body:getY()*pxPerMtr + 40*math.sin(car.body:getAngle()) )
   
-    if math.abs(car:getSpeed()) > 0 then
+    if math.abs(PhysicsHelper.getSpeed(car.body)) > 0 then
     
       love.graphics.setColor(1, 0, 0)
       local vx, vy = car.body:getLinearVelocity()
       love.graphics.line( car.body:getX()*pxPerMtr, car.body:getY()*pxPerMtr,
-        car.body:getX()*pxPerMtr + 40*vx/car:getSpeed(), car.body:getY()*pxPerMtr + 40*vy/car:getSpeed() )
+        car.body:getX()*pxPerMtr + 40*vx/PhysicsHelper.getSpeed(car.body), car.body:getY()*pxPerMtr + 40*vy/PhysicsHelper.getSpeed(car.body) )
     
     end
   
@@ -113,7 +115,7 @@ function love.draw()
   love.graphics.setColor(0, 0, 0)
   love.graphics.print(string.format("FPS: %d", 1/love.timer.getAverageDelta()), 20, 20)
   love.graphics.print(string.format("thr, brk, str: %.2f, %.2f, % .2f", car.throttle, car.brake, car.steering), 20, 35)
-  local ForwardSpeed = car:getRelativeSpeed()
+  local ForwardSpeed = PhysicsHelper.getRelativeSpeed(car.body)
   love.graphics.print(string.format("Speed: %.1f mph", 2.237 * ForwardSpeed), 20, 50)
   
   -- Current gear
@@ -149,7 +151,7 @@ function love.draw()
 end
 
 
---[[ drawFloorPattern()
+--[[ drawFloorPattern
   Function to draw checkered background pattern adapted from the gamera demo.
 --]]
 function drawFloorPattern(cl, ct, cw, ch)
