@@ -29,7 +29,6 @@ function Tire:new(x, y, mass, radius, width, friction, longStiffness, longShape,
   self.width = width
   self.height = radius*2
   self.angInertia = mass * radius^2
-  self.angVelocity = 0
   self.friction = friction
   
   -- Pacejka Magic Formula coefficients
@@ -53,6 +52,9 @@ function Tire:new(x, y, mass, radius, width, friction, longStiffness, longShape,
   love.graphics.setCanvas()
   self.image = Sprite(canvas)
   
+  -- Initialize state variables
+  self.angVelocity = 0
+  
 end
 
 --[[ Tire:update
@@ -69,10 +71,10 @@ function Tire:update(wheelLoad, accelTorque, brakeTorque, dt)
   local forwardSpeed, lateralSpeed = PhysicsHelper.getRelativeSpeed(self.body)
   
   -- Compute slip ratio and sideslip angle
-  local slipRatio
+  local slipRatio = 0
   if forwardSpeed ~= 0 then
     slipRatio = (self.radius * self.angVelocity - forwardSpeed) / math.abs(forwardSpeed)
-  else
+  elseif self.angVelocity ~= 0 then
     slipRatio = self.angVelocity / math.abs(self.angVelocity)
   end
   
@@ -89,9 +91,8 @@ function Tire:update(wheelLoad, accelTorque, brakeTorque, dt)
   -- Apply forces
   local tractionForceX = (longForce * ux) + (latForce * uy)
   local tractionForceY = (longForce * uy) + (latForce * -ux)
-  ------self.body:applyForce(tractionForceX, tractionForceY)
+  self.body:applyForce(tractionForceX, tractionForceY)
   
-  -- Apply traction forces (remove from PlayerCar)
   -- Deal with zero-crossing (braking)
   
 end

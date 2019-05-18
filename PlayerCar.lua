@@ -23,7 +23,16 @@ function PlayerCar:new(x, y)
   self.maxSteeringAngle = 30 * math.pi/180
   self.wheelbase = 2.65
   self.mass = 1500
+  self.speedZeroThreshold = 0.02
   
+  -- Set up physics
+  self.body = love.physics.newBody(world, x, y, "dynamic")
+  self.shape = love.physics.newRectangleShape(self.length, self.width)
+  local density = (love.physics.getMeter()^2 * self.mass) / (self.length * self.width)
+  self.fixture = love.physics.newFixture(self.body, self.shape, density)
+  self.fixture:setRestitution(0.05)
+  
+  -- Engine and drivetrain
   self.idleRpm = 1200
   self.redlineRpm = 6000
   local torqueValues = {297.09, 304.16, 310.24, 316.21, 321.50, 325.36, 328.32, 331.21, 332.89, 334.79,
@@ -34,7 +43,6 @@ function PlayerCar:new(x, y)
   self.torqueStep = (self.redlineRpm - self.idleRpm) / self.numTorqueSteps
   local ftLbToNm = 1.3558
   
-  -- Build map of RPM to torque values
   self.torqueCurve = {}
   for i = 0, self.numTorqueSteps do
     self.torqueCurve[i] = {self.idleRpm + (i * self.torqueStep), ftLbToNm * torqueValues[i + 1]}
@@ -42,65 +50,43 @@ function PlayerCar:new(x, y)
   
   self.gearRatios = {-2.90, 2.66, 1.78, 1.30, 1.00, 0.74, 0.50}
   self.finalDrive = 3.42
-  self.wheelRadius = 0.34
   self.driveEfficiency = 0.85
   self.gearShiftTime = 0.7
   
-  self.tireMu = 1.17
   self.frontWheelDrive = false
   self.rearWheelDrive = true
   
   -- Compute angular inertia of drivetrain + wheels
   local wheelMass = 10
-  local twoWheelsAngInertia = 2*wheelMass * self.wheelRadius^2
-  local drivelineAngInertia = 1 -- VERY rough estimate
-  self.frontAngInertia = twoWheelsAngInertia
-  self.rearAngInertia = twoWheelsAngInertia
+  local wheelRadius = 0.34
+  local drivelineEffectiveMass = 5 -- VERY rough estimate
+  local frontEffectiveWheelMass = 2*wheelMass
+  local rearEffectiveWheelMass = 2*wheelMass
+  
   if self.frontWheelDrive then
-    self.frontAngInertia = self.frontAngInertia + drivelineAngInertia
+    frontEffectiveWheelMass = frontEffectiveWheelMass + drivelineEffectiveMass
   end
   if self.rearWheelDrive then
-    self.rearAngInertia = self.rearAngInertia + drivelineAngInertia
+    rearEffectiveWheelMass = rearEffectiveWheelMass + drivelineEffectiveMass
   end
+  
+  -- Tires
+  self.frontTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), frontEffectiveWheelMass, wheelRadius, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
+  self.rearTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), rearEffectiveWheelMass, wheelRadius, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
+  self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
+  self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
   
   self.brakeTorque = 6000
   self.dragCoeff = 0.42
   self.rollingRes = 0.015 * gravity * self.mass
   
-  self.speedZeroThreshold = 0.02
-  
   -- Initialize state variables
   self.throttle = 0
   self.brake = 0
   self.steering = 0
-  
-  self.frontWheelAngV = 0
-  self.rearWheelAngV = 0
-  
   self.rpm = self.idleRpm
   self.gear = 1
   self.gearShiftDelay = 0
-  
-  -- Set up physics
-  self.body = love.physics.newBody(world, x, y, "dynamic")
-  self.shape = love.physics.newRectangleShape(self.length, self.width)
-  local density = (love.physics.getMeter()^2 * self.mass) / (self.length * self.width)
-  self.fixture = love.physics.newFixture(self.body, self.shape, density)
-  self.fixture:setRestitution(0.05)
-  
-  -- Traction and cornering force constants
-  self.idealSlipRatio = 0.054
-  self.tractionForceFalloff = -0.009
-  self.idealSideSlipAngle = 0.0413
-  self.corneringForceFalloff = -0.415
-  
-  
-  
-  -- Set up tires
-  self.frontTire = Tire(self.body:getX() + self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
-  self.rearTire = Tire(self.body:getX() - self.wheelbase/2, self.body:getY(), 20, 0.34, 0.6, 1.17, 0.5, 1.6, 0.97, 20, 1.8, 0.97)
-  self.frontTireJoint = love.physics.newRevoluteJoint(self.body, self.frontTire.body, self.body:getX() + self.wheelbase/2, self.body:getY(), false)
-  self.rearTireJoint = love.physics.newRevoluteJoint(self.body, self.rearTire.body, self.body:getX() - self.wheelbase/2, self.body:getY(), false)
   
 end
 
@@ -122,11 +108,10 @@ function PlayerCar:update(dt)
   if math.abs(PhysicsHelper.getSpeed(self.body)) < self.speedZeroThreshold and self.throttle == 0 then
     self.body:setLinearVelocity(0, 0)
     self.body:setAngularVelocity(0)
-    self.frontWheelAngV = 0
-    self.rearWheelAngV = 0
+    self.frontTire.angVelocity = 0
+    self.frontTire.angVelocity = 0
     return
   end
-  
   
   -- Acceleration
   local engineTorque = 0
@@ -135,11 +120,11 @@ function PlayerCar:update(dt)
     
     local driveWheelSpeed = 0
     if self.frontWheelDrive and self.rearWheelDrive then
-      driveWheelSpeed = (self.frontWheelAngV + self.rearWheelAngV) / 2
+      driveWheelSpeed = (self.frontTire.angVelocity + self.frontTire.angVelocity) / 2
     elseif self.frontWheelDrive then
-      driveWheelSpeed = self.frontWheelAngV
+      driveWheelSpeed = self.frontTire.angVelocity
     elseif self.rearWheelDrive then
-      driveWheelSpeed = self.rearWheelAngV
+      driveWheelSpeed = self.frontTire.angVelocity
     end
     
     local clutchOutputRpm = self.finalDrive * self.gearRatios[self.gear + 1] * driveWheelSpeed * (30/math.pi)
@@ -161,46 +146,24 @@ function PlayerCar:update(dt)
     rearAccelTorque = accelTorque
   end
   
-  
   -- Braking
   local brakeTorque = -self.brake * self.brakeTorque
   local frontBrakeTorque = brakeTorque / 2
   local rearBrakeTorque = brakeTorque / 2
-  if self.frontWheelAngV < 0 then frontBrakeTorque = -frontBrakeTorque end
-  if self.rearWheelAngV < 0 then rearBrakeTorque = -rearBrakeTorque end
+  if self.frontTire.angVelocity < 0 then frontBrakeTorque = -frontBrakeTorque end
+  if self.rearTire.angVelocity < 0 then rearBrakeTorque = -rearBrakeTorque end
   
+  -- Steering
+  ------ Scale based on peak cornering force as before
+  local steeringAngle = self.steering * self.maxSteeringAngle
+  self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
+  self.rearTire.body:setAngle(self.body:getAngle())
   
-  -- Traction force
-  local frontSlipRatio = 0
-  local rearSlipRatio = 0
-  
-  if forwardSpeed ~= 0 or self.frontWheelAngV ~= 0 then
-    frontSlipRatio = (self.wheelRadius * self.frontWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
-  end
-  if forwardSpeed ~= 0 or self.rearWheelAngV ~= 0 then
-    rearSlipRatio = (self.wheelRadius * self.rearWheelAngV - forwardSpeed) / math.abs(forwardSpeed)
-  end
-  
+  -- Traction forces
   local frontWheelLoad = gravity * self.mass / 2
   local rearWheelLoad = gravity * self.mass / 2
-  
-  local frontTractionForce = self:computeTractionForce(frontSlipRatio, frontWheelLoad, self.tireMu)
-  local rearTractionForce = self:computeTractionForce(rearSlipRatio, rearWheelLoad, self.tireMu)
-  
-  local frontTractionTorque = -frontTractionForce * self.wheelRadius
-  local rearTractionTorque = -rearTractionForce * self.wheelRadius
-  
-  local tractionForce = frontTractionForce + rearTractionForce
-  local tractionForceX = tractionForce * ux
-  local tractionForceY = tractionForce * uy
-  
-  
-  -- Update wheel angular velocity
-  local frontWheelTorque = frontAccelTorque + frontBrakeTorque + frontTractionTorque
-  local rearWheelTorque = rearAccelTorque + rearBrakeTorque + rearTractionTorque
-  
-  self.frontWheelAngV = self.frontWheelAngV + (frontWheelTorque * dt / self.frontAngInertia)
-  self.rearWheelAngV = self.rearWheelAngV + (rearWheelTorque * dt / self.rearAngInertia)
+  self.frontTire:update(frontWheelLoad, frontAccelTorque, frontBrakeTorque, dt)
+  self.rearTire:update(rearWheelLoad, rearAccelTorque, rearBrakeTorque, dt)
   
   
   -- Drag and rolling resistance
@@ -216,51 +179,7 @@ function PlayerCar:update(dt)
   local rollResForceX = rollResForce * ux
   local rollResForceY = rollResForce * uy
   
-  
-  -- Apply net forces
-  local netForceX = tractionForceX + rollResForceX + dragForceX
-  local netForceY = tractionForceY + rollResForceY + dragForceY
-  
-  self.body:applyForce(netForceX, netForceY)
-  
-  
-  -- Cornering
-  local wheelsCenterDist = self.wheelbase / 2
-  local wheelRelativeSpeed = self.body:getAngularVelocity() * wheelsCenterDist
-  
-  local frontWheelLatSpeed = lateralSpeed + wheelRelativeSpeed
-  local rearWheelLatSpeed = lateralSpeed - wheelRelativeSpeed
-  
-  local frontSideSlip = math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))
-  local rearSideSlip = math.atan2(rearWheelLatSpeed, math.abs(forwardSpeed))
-  
-  -- Scale steering such that peak cornering force can be reached
-  local scaledMaxSteeringAngle = math.abs(math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))) + self.idealSideSlipAngle
-  if scaledMaxSteeringAngle > self.maxSteeringAngle then scaledMaxSteeringAngle = self.maxSteeringAngle end
-  
-  local steeringAngle = self.steering * scaledMaxSteeringAngle
-  
-  if forwardSpeed > 0 then
-    frontSideSlip = frontSideSlip - steeringAngle
-  elseif forwardSpeed < 0 then
-    frontSideSlip = frontSideSlip + steeringAngle
-  end
-  
-  local frontCorneringForce = self:computeCorneringForce(frontSideSlip, frontWheelLoad, self.tireMu) * math.cos(steeringAngle)
-  local rearCorneringForce = self:computeCorneringForce(rearSideSlip, rearWheelLoad, self.tireMu)
-  
-  
-  
-  -- Apply cornering force to tires until tires properly implemented
-  self.frontTire.body:applyForce(frontCorneringForce*uy, frontCorneringForce*-ux)
-  self.rearTire.body:applyForce(rearCorneringForce*uy, rearCorneringForce*-ux)
-  
-  -- Tires
-  self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
-  self.rearTire.body:setAngle(self.body:getAngle())
-  
-  self.frontTire:update(frontWheelLoad, frontAccelTorque, frontBrakeTorque, dt)
-  self.rearTire:update(rearWheelLoad, rearAccelTorque, rearBrakeTorque, dt)
+  self.body:applyForce(rollResForceX + dragForceX, rollResForceY + dragForceY)
   
 end
 
