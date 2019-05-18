@@ -5,7 +5,55 @@ PhysicsHelper = require "PhysicsHelper"
 
 require "PlayerCar"
 require "Sprite"
-  
+
+--[[ love.run
+  LOVE main function. Need to override to cap framerate.
+--]]
+function love.run()
+	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
+
+	-- We don't want the first frame's dt to include time taken by love.load.
+	if love.timer then love.timer.step() end
+
+	local dt = 0
+
+	-- Main loop time.
+	return function()
+		-- Process events.
+		if love.event then
+			love.event.pump()
+			for name, a,b,c,d,e,f in love.event.poll() do
+				if name == "quit" then
+					if not love.quit or not love.quit() then
+						return a or 0
+					end
+				end
+				love.handlers[name](a,b,c,d,e,f)
+			end
+		end
+
+		-- Update dt, as we'll be passing it to update
+		if love.timer then dt = love.timer.step() end
+
+		-- Call update and draw
+		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+
+    -- Only draw new frame if older than framePeriod
+		if love.graphics and love.graphics.isActive() and frameAge >= framePeriod then
+      frameAge = 0
+			love.graphics.origin()
+			love.graphics.clear(love.graphics.getBackgroundColor())
+
+			if love.draw then love.draw() end
+
+			love.graphics.present()
+		end
+
+		if love.timer then love.timer.sleep(0.001) end
+	end
+end
+
+
 --[[ love.load
   LOVE initialization function. Run once at program start.
 --]]
@@ -21,6 +69,9 @@ function love.load()
   maxY = love.graphics.getHeight() / pxPerMtr
   
   camera = Gamera.new(-100000, -100000, 200000, 200000)
+  
+  framePeriod = 1/60
+  frameAge = 1
   
   -- Fonts
   fontCourier = love.graphics.newFont("cour.ttf", 12)
@@ -81,6 +132,8 @@ function love.update(dt)
   
   camera:setPosition(cameraX * pxPerMtr, cameraY * pxPerMtr)
   camera:setAngle(car.body:getAngle() + math.pi/2)
+  
+  frameAge = frameAge + dt
   
 end
 
