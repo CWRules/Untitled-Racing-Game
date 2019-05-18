@@ -11,7 +11,7 @@ require "Sprite"
 --]]
 function love.load()
   
-  ------ DEBUG
+  -- DEBUG MODE
   --require("mobdebug").start()
   
   -- Set up window
@@ -37,8 +37,15 @@ function love.load()
   
   -- Create walls
   walls = {}
-  local wallImage = Sprite("images/Wall.png")
-  local wallShape = love.physics.newRectangleShape(wallImage.width / pxPerMtr, wallImage.height / pxPerMtr)
+  local wallWidth = 100
+  local wallHeight = 2
+  local canvas = love.graphics.newCanvas(wallWidth*pxPerMtr, wallHeight*pxPerMtr)
+  love.graphics.setCanvas(canvas)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.rectangle("fill", 0, 0, wallWidth*pxPerMtr, wallHeight*pxPerMtr)
+  love.graphics.setCanvas()
+  local wallImage = Sprite(canvas)
+  local wallShape = love.physics.newRectangleShape(wallWidth, wallHeight)
   
   for i = 1, 3 do
     walls[i] = {}
@@ -82,6 +89,7 @@ end
   LOVE graphics function. Run once each program cycle after update() finishes.
 --]]
 function love.draw()
+  
   camera:draw(function(l,t,w,h)
     
     drawFloorPattern(l,t,w,h)
@@ -177,4 +185,5 @@ function drawFloorPattern(cl, ct, cw, ch)
       love.graphics.rectangle("fill", x*w, y*h, w, h)
     end
   end
+  
 end
