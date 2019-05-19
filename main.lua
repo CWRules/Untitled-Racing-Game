@@ -71,7 +71,7 @@ function love.load()
   camera = Gamera.new(-100000, -100000, 200000, 200000)
   
   framePeriod = 1/60
-  frameAge = 1
+  frameAge = 1.0
   
   -- Fonts
   fontCourier = love.graphics.newFont("cour.ttf", 12)

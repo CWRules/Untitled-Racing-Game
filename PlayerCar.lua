@@ -155,6 +155,17 @@ function PlayerCar:update(dt)
   
   -- Steering
   ------ Scale based on peak cornering force as before
+  
+  -- Have Tire work out its own ideal slip angle
+  ---- Find zero in derivative of Magic Formula: sin(C * atan(B*x - E * (B*x - atan(B*x))))
+  -- Derivative: (C (B - E (B - B/(B^2 x^2 + 1))) cos(C atan(B x - E (B x - atan(B x)))))/((B x - E (B x - atan(B x)))^2 + 1)
+  -- Simplified: cos(C atan(-B E x + E atan(B x) + B x))
+  --             (1 - E) B x + E atan(B x) - tan(pi/(2 C))
+  -- Have Tire return ideal angle direction and facing for left/right
+  
+  ------local scaledMaxSteeringAngle = math.abs(math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))) + self.idealSideSlipAngle
+  ------if scaledMaxSteeringAngle > self.maxSteeringAngle then scaledMaxSteeringAngle = self.maxSteeringAngle end
+  
   local steeringAngle = self.steering * self.maxSteeringAngle
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())

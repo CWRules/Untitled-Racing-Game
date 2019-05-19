@@ -107,3 +107,74 @@ function Tire:draw()
   self.image:draw(self.body:getX()*pxPerMtr, self.body:getY()*pxPerMtr, self.body:getAngle())
   
 end
+
+
+--[[ Tire:idealSlip
+  Returns the slip ratio or sideslip angle that gives the maximum traction force.
+  Uses Newton's Method to find point where derivative of Magic Formula is zero.
+  
+  direction: 'long' or 'lat'
+  
+  --- func = Expects a single dimension function
+  --- xi = initial root guess
+  --- e = absolute error i.e. solution is xs where func(xs)=e
+  --- m = total number of iterations
+--]]
+function Tire:idealSlip(direction)
+  
+  local B, C, E
+  if direction = 'long' then
+    B = self.longStiffness
+    C = math.tan(math.pi/(2*self.longShape))
+    E = self.longCurvature
+  elseif direction = 'lat' then
+    B = self.latStiffness
+    C = math.tan(math.pi/(2*self.latShape))
+    E = self.latCurvature
+  end
+  
+  local function func(x) return (1 - E)*B*x + E*math.atan(B*x) - C end
+  
+  local xi = 0
+  local m = 1000
+  local e = 0.01
+  
+  local fi = func(xi)
+  local xin = xi - e
+  local err = e
+  
+  while math.abs(fi-func(xin)) < e do
+    err = 2*err
+    xin = xi-err
+  end
+  local fin = func(xin)
+  if math.abs(fi) <= e then
+    return xi,fi
+  end
+  if math.abs(fin) <= e then
+    return xin,fin
+  end
+  
+  local xip,fip
+  for i=1,m do
+    xip = xi - (fi*(xi-xin))/(fi-fin)
+    fip = func(xip)
+    if math.abs(fip)<=e then
+      return xip,fip
+    end
+    xi = xip
+    fi = fip
+    xin = xi - err
+    while math.abs(fi-func(xin)) > e do
+      err = err/2
+      xin = xi-err
+    end
+    while math.abs(fi-fin) < e do
+      err = 2*err
+      xin = xi-err
+      fin = func(xin)
+    end
+  end
+  return xip,fip
+  
+end
