@@ -207,7 +207,7 @@ function love.draw()
   end
   love.graphics.print(string.format("RPM: %s", rpmString), 20, 65)
   
-  love.graphics.print(string.format("x, y: %.1f, %.1f", car.body:getX(), car.body:getY()), 20, 80)
+  love.graphics.print(string.format("x, y, ang: %.1f, %.1f, %.3f", car.body:getX(), car.body:getY(), car.body:getAngle()), 20, 80)
   
 end
 

@@ -18,6 +18,19 @@ function PhysicsHelper.getSpeed(body)
 end
 
 
+--[[ PhysicsHelper.getMoveAngle
+  Returns the angle of an object's direction of travel.
+  
+  body: Body object.
+--]]
+function PhysicsHelper.getMoveAngle(body)
+  
+  local vx, vy = body:getLinearVelocity()
+  return math.atan2(vy, vx)
+  
+end
+
+
 --[[ PhysicsHelper.getRelativeSpeed
   Returns the speed of an object relative to its own facing, in the forward and lateral directions.
   

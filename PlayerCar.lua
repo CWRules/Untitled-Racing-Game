@@ -120,11 +120,11 @@ function PlayerCar:update(dt)
     
     local driveWheelSpeed = 0
     if self.frontWheelDrive and self.rearWheelDrive then
-      driveWheelSpeed = (self.frontTire.angVelocity + self.frontTire.angVelocity) / 2
+      driveWheelSpeed = (self.frontTire.angVelocity + self.rearTire.angVelocity) / 2
     elseif self.frontWheelDrive then
       driveWheelSpeed = self.frontTire.angVelocity
     elseif self.rearWheelDrive then
-      driveWheelSpeed = self.frontTire.angVelocity
+      driveWheelSpeed = self.rearTire.angVelocity
     end
     
     local clutchOutputRpm = self.finalDrive * self.gearRatios[self.gear + 1] * driveWheelSpeed * (30/math.pi)
@@ -154,15 +154,23 @@ function PlayerCar:update(dt)
   if self.rearTire.angVelocity < 0 then rearBrakeTorque = -rearBrakeTorque end
   
   -- Steering
-  ------ Scale based on peak cornering force as before
+  -- Scale based on peak cornering force
+  local steeringDirection = 0
+  if self.steering > 0 then
+    steeringDirection = 1
+  elseif self.steering < 0 then
+    steeringDirection = -1
+  end
   
-  -- Have Tire return ideal angle for left/right
-  --self.frontTire.idealSlipLat
+  local maxForceAngle = PhysicsHelper.getMoveAngle(self.frontTire.body) + (steeringDirection * self.frontTire.idealSlipLat)
+  local scaledMaxSteeringAngle = maxForceAngle - self.body:getAngle()
+  if scaledMaxSteeringAngle > self.maxSteeringAngle then
+    scaledMaxSteeringAngle = self.maxSteeringAngle
+  elseif scaledMaxSteeringAngle < -self.maxSteeringAngle then
+    scaledMaxSteeringAngle = -self.maxSteeringAngle
+  end
   
-  ------local scaledMaxSteeringAngle = math.abs(math.atan2(frontWheelLatSpeed, math.abs(forwardSpeed))) + self.idealSideSlipAngle
-  ------if scaledMaxSteeringAngle > self.maxSteeringAngle then scaledMaxSteeringAngle = self.maxSteeringAngle end
-  
-  local steeringAngle = self.steering * self.maxSteeringAngle
+  local steeringAngle = math.abs(self.steering) * scaledMaxSteeringAngle
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())
   
@@ -235,62 +243,6 @@ function PlayerCar:torqueCurveLookup(rpm)
     return y0 + (rpm - x0) * (y1 - y0) / (x1 - x0)
     
   end
-  
-end
-
-
---[[ PlayerCar:computeTractionForce
-  Returns the traction force for a given slip ratio and wheel load.
-  Traction force increases rapidly with magnitude of slip ratio up to a point,
-  then drops off gradually.
-  
-  slipRatio: Slip ratio of the tire.
-  tireLoad: Load in Newtons on the tire.
-  tireMu: Tire friction coefficient.
---]]
-function PlayerCar:computeTractionForce(slipRatio, tireLoad, tireMu)
-  
-  local loadFactor = 0
-  
-  if slipRatio < -self.idealSlipRatio then
-    loadFactor = (self.tractionForceFalloff * slipRatio) - 1
-    if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif slipRatio <= self.idealSlipRatio then
-     loadFactor = slipRatio / self.idealSlipRatio
-  else
-    loadFactor = (self.tractionForceFalloff * slipRatio) + 1
-    if loadFactor < 0.5 then loadFactor = 0.5 end
-  end
-  
-  return loadFactor * tireLoad * tireMu
-  
-end
-
-
---[[ PlayerCar:computeCorneringForce
-  Returns the cornering force for a given sideslip angle and wheel load.
-  Cornering force increases rapidly with magnitude of sideslip angle up to a point,
-  then drops off gradually.
-  
-  sideSlipAngle: Sideslip angle of the tire in radians.
-  tireLoad: Load in Newtons on the tire.
-  tireMu: Tire friction coefficient.
---]]
-function PlayerCar:computeCorneringForce(sideSlipAngle, tireLoad, tireMu)
-  
-  local loadFactor = 0
-  
-  if sideSlipAngle < -self.idealSideSlipAngle then
-    loadFactor = (self.corneringForceFalloff * sideSlipAngle) - 1
-    if loadFactor > -0.5 then loadFactor = -0.5 end
-  elseif sideSlipAngle <= self.idealSideSlipAngle then
-     loadFactor = sideSlipAngle / self.idealSideSlipAngle
-  else
-    loadFactor = (self.corneringForceFalloff * sideSlipAngle) + 1
-    if loadFactor < 0.5 then loadFactor = 0.5 end
-  end
-  
-  return loadFactor * tireLoad * tireMu
   
 end
 

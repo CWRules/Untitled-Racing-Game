@@ -96,8 +96,6 @@ function Tire:update(wheelLoad, accelTorque, brakeTorque, dt)
   local tractionForceY = (longForce * uy) + (latForce * -ux)
   self.body:applyForce(tractionForceX, tractionForceY)
   
-  -- Deal with zero-crossing (braking)
-  
 end
 
 
@@ -118,11 +116,6 @@ end
   Adapted from LuaMath package here: https://github.com/aryajur/LuaMath
   
   direction: 'long' or 'lat'
-  
-  --- func = Expects a single dimension function
-  --- xi = initial root guess
-  --- e = absolute error i.e. solution is xs where func(xs)=e
-  --- m = total number of iterations
 --]]
 function Tire:idealSlip(direction)
   
