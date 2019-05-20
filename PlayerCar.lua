@@ -171,13 +171,12 @@ function PlayerCar:update(dt)
     scaledMaxSteeringAngle = scaledMaxSteeringAngle + 2*math.pi
   end
   
+  scaledMaxSteeringAngle = math.abs(scaledMaxSteeringAngle)
   if scaledMaxSteeringAngle > self.maxSteeringAngle then
     scaledMaxSteeringAngle = self.maxSteeringAngle
-  elseif scaledMaxSteeringAngle < -self.maxSteeringAngle then
-    scaledMaxSteeringAngle = -self.maxSteeringAngle
   end
   
-  local steeringAngle = math.abs(self.steering) * scaledMaxSteeringAngle
+  local steeringAngle = self.steering * scaledMaxSteeringAngle
   self.frontTire.body:setAngle(self.body:getAngle() + steeringAngle)
   self.rearTire.body:setAngle(self.body:getAngle())
   
