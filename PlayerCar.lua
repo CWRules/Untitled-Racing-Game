@@ -155,23 +155,21 @@ function PlayerCar:update(dt)
   
   -- Steering
   -- Scale based on peak cornering force
-  local steeringDirection = 0
+  local maxForceAngle = 0
   if self.steering > 0 then
-    steeringDirection = 1
+    maxForceAngle = PhysicsHelper.getMoveAngle(self.frontTire.body) + self.frontTire.idealSlipLat
   elseif self.steering < 0 then
-    steeringDirection = -1
+    maxForceAngle = PhysicsHelper.getMoveAngle(self.frontTire.body) - self.frontTire.idealSlipLat
   end
   
-  local maxForceAngle = PhysicsHelper.getMoveAngle(self.frontTire.body) + (steeringDirection * self.frontTire.idealSlipLat)
-  local carAngle = self.body:getAngle()
-  
-  if carAngle > math.pi then
-    carAngle = carAngle - 2*math.pi
-  elseif carAngle < -math.pi then
-    carAngle = carAngle + 2*math.pi
-  end
-  
+  local carAngle = math.atan2(uy, ux)  
   local scaledMaxSteeringAngle = maxForceAngle - carAngle
+  
+  if scaledMaxSteeringAngle > math.pi then
+    scaledMaxSteeringAngle = scaledMaxSteeringAngle - 2*math.pi
+  elseif scaledMaxSteeringAngle < -math.pi then
+    scaledMaxSteeringAngle = scaledMaxSteeringAngle + 2*math.pi
+  end
   
   if scaledMaxSteeringAngle > self.maxSteeringAngle then
     scaledMaxSteeringAngle = self.maxSteeringAngle
