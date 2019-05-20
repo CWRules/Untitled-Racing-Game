@@ -163,7 +163,16 @@ function PlayerCar:update(dt)
   end
   
   local maxForceAngle = PhysicsHelper.getMoveAngle(self.frontTire.body) + (steeringDirection * self.frontTire.idealSlipLat)
-  local scaledMaxSteeringAngle = maxForceAngle - self.body:getAngle()
+  local carAngle = self.body:getAngle()
+  
+  if carAngle > math.pi then
+    carAngle = carAngle - 2*math.pi
+  elseif carAngle < -math.pi then
+    carAngle = carAngle + 2*math.pi
+  end
+  
+  local scaledMaxSteeringAngle = maxForceAngle - carAngle
+  
   if scaledMaxSteeringAngle > self.maxSteeringAngle then
     scaledMaxSteeringAngle = self.maxSteeringAngle
   elseif scaledMaxSteeringAngle < -self.maxSteeringAngle then
@@ -278,21 +287,24 @@ function PlayerCar:processInputs(dt)
   local noSteerInput = true
   if love.keyboard.isDown("left") then
     noSteerInput = false
-    self.steering = self.steering - 3*dt
+    self.steering = self.steering - 2*dt
   end
   if love.keyboard.isDown("right") then
     noSteerInput = false
-    self.steering = self.steering + 3*dt
+    self.steering = self.steering + 2*dt
   end
   
-  if self.steering < -1 then self.steering = -1 end
-  if self.steering > 1 then self.steering = 1 end
+  if self.steering < -1 then
+    self.steering = -1
+  elseif self.steering > 1 then
+    self.steering = 1
+  end
   
   if noSteerInput == true then
     if self.steering > 0.05 then
-      self.steering = self.steering - 3*dt
+      self.steering = self.steering - 2*dt
     elseif self.steering < -0.05 then
-      self.steering = self.steering + 3*dt
+      self.steering = self.steering + 2*dt
     else
       self.steering = 0
     end

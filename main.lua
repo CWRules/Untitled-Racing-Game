@@ -209,6 +209,17 @@ function love.draw()
   
   love.graphics.print(string.format("x, y, ang: %.1f, %.1f, %.3f", car.body:getX(), car.body:getY(), car.body:getAngle()), 20, 80)
   
+  ------DEBUG
+  local steeringDirection = 0
+  if car.steering > 0 then
+    steeringDirection = 1
+  elseif car.steering < 0 then
+    steeringDirection = -1
+  end
+  
+  local maxForceAngle = PhysicsHelper.getMoveAngle(car.frontTire.body) + (steeringDirection * car.frontTire.idealSlipLat)
+  love.graphics.print(string.format("maxForceAngle: %.3f", maxForceAngle), 20, 95)
+  
 end
 
 
