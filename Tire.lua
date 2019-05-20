@@ -39,6 +39,9 @@ function Tire:new(x, y, mass, radius, width, friction, longStiffness, longShape,
   self.latShape = latShape
   self.latCurvature = latCurvature
   
+  self.idealSlipLat = self:idealSlip('lat')
+  self.idealSlipLong = self:idealSlip('long')
+  
   -- Set up physics
   self.body = love.physics.newBody(world, x, y, "dynamic")
   self.shape = love.physics.newRectangleShape(self.height, self.width)
@@ -112,6 +115,7 @@ end
 --[[ Tire:idealSlip
   Returns the slip ratio or sideslip angle that gives the maximum traction force.
   Uses Newton's Method to find point where derivative of Magic Formula is zero.
+  Adapted from LuaMath package here: https://github.com/aryajur/LuaMath
   
   direction: 'long' or 'lat'
   
@@ -123,58 +127,32 @@ end
 function Tire:idealSlip(direction)
   
   local B, C, E
-  if direction = 'long' then
+  if direction == 'long' then
     B = self.longStiffness
     C = math.tan(math.pi/(2*self.longShape))
     E = self.longCurvature
-  elseif direction = 'lat' then
+  elseif direction == 'lat' then
     B = self.latStiffness
     C = math.tan(math.pi/(2*self.latShape))
     E = self.latCurvature
   end
   
-  local function func(x) return (1 - E)*B*x + E*math.atan(B*x) - C end
+  -- First and second derivatives of Pacejka Magic Formula
+  -- Simplified to remove unecessary terms
+  local function f(x) return E*math.atan(B*x) + (1 - E)*B*x - C end
+  local function fp(x) return B*E*(1/((B^2)*(x^2) + 1) - 1) + B end
   
-  local xi = 0
-  local m = 1000
-  local e = 0.01
+  local x = 0
+  local maxError = 0.001
   
-  local fi = func(xi)
-  local xin = xi - e
-  local err = e
-  
-  while math.abs(fi-func(xin)) < e do
-    err = 2*err
-    xin = xi-err
-  end
-  local fin = func(xin)
-  if math.abs(fi) <= e then
-    return xi,fi
-  end
-  if math.abs(fin) <= e then
-    return xin,fin
-  end
-  
-  local xip,fip
-  for i=1,m do
-    xip = xi - (fi*(xi-xin))/(fi-fin)
-    fip = func(xip)
-    if math.abs(fip)<=e then
-      return xip,fip
-    end
-    xi = xip
-    fi = fip
-    xin = xi - err
-    while math.abs(fi-func(xin)) > e do
-      err = err/2
-      xin = xi-err
-    end
-    while math.abs(fi-fin) < e do
-      err = 2*err
-      xin = xi-err
-      fin = func(xin)
+  for i=0, 100 do
+    x = x - (f(x)/fp(x))
+    local err = f(x)
+    local iter = i
+    if math.abs(err) <= maxError then
+      return x
     end
   end
-  return xip,fip
+  return x
   
 end
